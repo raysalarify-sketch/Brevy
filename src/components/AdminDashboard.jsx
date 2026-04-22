@@ -49,34 +49,34 @@ const AdminDashboard = ({ onExit }) => {
         </div>
       </div>
 
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 350px', gap: '32px' }}>
+      <div className="home-layout">
         {/* Left Content */}
         <div>
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '20px', marginBottom: '32px' }}>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(140px, 1fr))', gap: '20px', marginBottom: '32px' }}>
             <div className="card" style={{ textAlign: 'center' }}>
-              <div style={{ fontSize: '12px', color: 'var(--text-muted)', marginBottom: '8px', fontWeight: 600 }}>총 입장 횟수</div>
-              <div style={{ fontSize: '2rem', fontWeight: 700 }}>{logs.length}</div>
+              <div style={{ fontSize: '11px', color: 'var(--text-muted)', marginBottom: '8px', fontWeight: 600 }}>총 입장 횟수</div>
+              <div style={{ fontSize: '1.75rem', fontWeight: 700 }}>{logs.length}</div>
             </div>
             <div className="card" style={{ textAlign: 'center', background: 'var(--primary)', color: 'white' }}>
-              <div style={{ fontSize: '12px', opacity: 0.8, marginBottom: '8px', fontWeight: 600 }}>입장 요청 대기</div>
-              <div style={{ fontSize: '2rem', fontWeight: 700 }}>{pendingRequests.length}</div>
+              <div style={{ fontSize: '11px', opacity: 0.8, marginBottom: '8px', fontWeight: 600 }}>입장 요청 대기</div>
+              <div style={{ fontSize: '1.75rem', fontWeight: 700 }}>{pendingRequests.length}</div>
             </div>
             <div className="card" style={{ textAlign: 'center' }}>
-              <div style={{ fontSize: '12px', color: 'var(--text-muted)', marginBottom: '8px', fontWeight: 600 }}>시스템 상태</div>
+              <div style={{ fontSize: '11px', color: 'var(--text-muted)', marginBottom: '8px', fontWeight: 600 }}>시스템 상태</div>
               <div style={{ fontSize: '1.25rem', fontWeight: 700, color: '#059669' }}>ACTIVE</div>
             </div>
           </div>
 
           {/* Pending Requests Table */}
           <div className="card" style={{ padding: 0, overflow: 'hidden', marginBottom: '32px', border: '2px solid var(--primary)' }}>
-            <div style={{ padding: '20px', borderBottom: '1px solid var(--border)', fontWeight: 700, display: 'flex', justifyContent: 'space-between', background: '#f8fafc' }}>
-              <span>Pending Access Requests (입장 신청 명단)</span>
-              <button onClick={clearRequests} style={{ fontSize: '11px', color: '#dc2626', background: 'none', border: 'none', cursor: 'pointer', fontWeight: 700 }}>목록 초기화</button>
+            <div style={{ padding: '16px 20px', borderBottom: '1px solid var(--border)', fontWeight: 700, display: 'flex', justifyContent: 'space-between', background: '#f8fafc', alignItems: 'center' }}>
+              <span style={{ fontSize: '14px' }}>Pending Requests (신청 명단)</span>
+              <button onClick={clearRequests} style={{ fontSize: '10px', color: '#dc2626', background: 'none', border: 'none', cursor: 'pointer', fontWeight: 700 }}>초기화</button>
             </div>
-            <div style={{ maxHeight: '300px', overflowY: 'auto' }}>
+            <div className="table-container">
               <table style={{ width: '100%', borderCollapse: 'collapse' }}>
                 <thead>
-                  <tr style={{ background: 'var(--bg)', borderBottom: '1px solid var(--border)', fontSize: '11px', color: 'var(--text-muted)' }}>
+                  <tr style={{ background: 'var(--bg)', borderBottom: '1px solid var(--border)', fontSize: '10px', color: 'var(--text-muted)' }}>
                     <th style={{ padding: '12px 20px', textAlign: 'left' }}>REQUESTED TIME</th>
                     <th style={{ padding: '12px 20px', textAlign: 'left' }}>NAME</th>
                     <th style={{ padding: '12px 20px', textAlign: 'left' }}>EMAIL</th>
@@ -85,14 +85,14 @@ const AdminDashboard = ({ onExit }) => {
                 <tbody>
                   {pendingRequests.length === 0 ? (
                     <tr>
-                      <td colSpan="3" style={{ padding: '40px', textAlign: 'center', color: 'var(--text-muted)', fontSize: '14px' }}>대기 중인 입장 요청이 없습니다.</td>
+                      <td colSpan="3" style={{ padding: '40px', textAlign: 'center', color: 'var(--text-muted)', fontSize: '13px' }}>대기 중인 요청이 없습니다.</td>
                     </tr>
                   ) : (
                     pendingRequests.map((req, i) => (
-                      <tr key={i} style={{ borderBottom: '1px solid var(--border)', fontSize: '14px' }}>
-                        <td style={{ padding: '16px 20px' }}>{new Date(req.time).toLocaleString()}</td>
-                        <td style={{ padding: '16px 20px', fontWeight: 700 }}>{req.name}</td>
-                        <td style={{ padding: '16px 20px', color: 'var(--primary)', fontWeight: 600 }}>{req.email}</td>
+                      <tr key={i} style={{ borderBottom: '1px solid var(--border)', fontSize: '13px' }}>
+                        <td style={{ padding: '12px 20px' }}>{new Date(req.time).toLocaleString()}</td>
+                        <td style={{ padding: '12px 20px', fontWeight: 700 }}>{req.name}</td>
+                        <td style={{ padding: '12px 20px', color: 'var(--primary)', fontWeight: 600 }}>{req.email}</td>
                       </tr>
                     ))
                   )}
@@ -103,13 +103,13 @@ const AdminDashboard = ({ onExit }) => {
 
           {/* Recent Access Logs */}
           <div className="card" style={{ padding: 0, overflow: 'hidden' }}>
-            <div style={{ padding: '20px', borderBottom: '1px solid var(--border)', fontWeight: 700 }}>Recent Access Logs (접속 기록)</div>
-            <div style={{ maxHeight: '400px', overflowY: 'auto' }}>
+            <div style={{ padding: '16px 20px', borderBottom: '1px solid var(--border)', fontWeight: 700, fontSize: '14px' }}>Recent Logs (접속 기록)</div>
+            <div className="table-container">
               <table style={{ width: '100%', borderCollapse: 'collapse' }}>
                 <thead>
-                  <tr style={{ background: 'var(--bg)', borderBottom: '1px solid var(--border)', fontSize: '11px', color: 'var(--text-muted)' }}>
+                  <tr style={{ background: 'var(--bg)', borderBottom: '1px solid var(--border)', fontSize: '10px', color: 'var(--text-muted)' }}>
                     <th style={{ padding: '12px 20px', textAlign: 'left' }}>TIME</th>
-                    <th style={{ padding: '12px 20px', textAlign: 'left' }}>CODE USED</th>
+                    <th style={{ padding: '12px 20px', textAlign: 'left' }}>CODE</th>
                     <th style={{ padding: '12px 20px', textAlign: 'left' }}>STATUS</th>
                   </tr>
                 </thead>
@@ -120,12 +120,12 @@ const AdminDashboard = ({ onExit }) => {
                     </tr>
                   ) : (
                     logs.map((log, i) => (
-                      <tr key={i} style={{ borderBottom: '1px solid var(--border)', fontSize: '13px' }}>
+                      <tr key={i} style={{ borderBottom: '1px solid var(--border)', fontSize: '12px' }}>
                         <td style={{ padding: '12px 20px' }}>{new Date(log.time).toLocaleString()}</td>
                         <td style={{ padding: '12px 20px', fontFamily: 'monospace', fontWeight: 600 }}>{log.code}</td>
                         <td style={{ padding: '12px 20px' }}>
                           <span style={{ 
-                            padding: '4px 8px', borderRadius: '6px', fontSize: '10px', fontWeight: 700,
+                            padding: '3px 6px', borderRadius: '4px', fontSize: '9px', fontWeight: 700,
                             background: log.success ? '#f0fdf4' : '#fef2f2',
                             color: log.success ? '#166534' : '#991b1b'
                           }}>
@@ -143,7 +143,7 @@ const AdminDashboard = ({ onExit }) => {
 
         {/* Right Sidebar */}
         <div>
-          <div className="card" style={{ border: '2px solid var(--primary)', position: 'sticky', top: '40px' }}>
+          <div className="card sticky-side" style={{ border: '2px solid var(--primary)' }}>
             <h3 style={{ fontSize: '18px', marginBottom: '20px', borderBottom: '1px solid var(--border)', paddingBottom: '12px' }}>Access Settings</h3>
             
             <div style={{ marginBottom: '24px' }}>

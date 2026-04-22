@@ -352,7 +352,7 @@ export default function App() {
               <p style={{ color: "var(--text-muted)", fontSize: 18 }}>카테고리를 선택하거나, 우측에 바로 요청하세요.</p>
             </div>
 
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 360px', gap: 32, alignItems: 'start' }}>
+            <div className="home-layout">
               <div>
                 <div style={{ position: "relative", marginBottom: 32 }}>
                   <input 
@@ -398,7 +398,7 @@ export default function App() {
                       ))}
                     </div>
                     
-                    <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(180px, 1fr))", gap: 16 }}>
+                    <div className="grid-cats" style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(180px, 1fr))", gap: 16 }}>
                       {curDiv.cats.map(c => (
                         <div key={c.id} className="card card-hover cc" onClick={() => goCat(c)} style={{ textAlign: "center", padding: "24px 16px" }}>
                           <div style={{ width: 48, height: 48, borderRadius: 12, background: c.c + "10", 
@@ -413,7 +413,7 @@ export default function App() {
                 )}
               </div>
 
-              <div className="card" style={{ position: 'sticky', top: 100, border: '1px solid var(--primary)', background: '#fff' }}>
+              <div className="card sticky-side" style={{ border: '1px solid var(--primary)', background: '#fff' }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 16 }}>
                   <span style={{ fontSize: 20 }}>✨</span>
                   <h3 style={{ fontSize: 18, margin: 0 }}>자유 양식 퀵 프롬프트</h3>
