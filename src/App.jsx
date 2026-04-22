@@ -152,7 +152,11 @@ export default function App() {
 
   return (
     <div ref={topRef} className="app-container">
-      <Header templateCount={allTemplates.length} onHome={goHome} />
+      <Header 
+        templateCount={allTemplates.length} 
+        onHome={goHome} 
+        onAlerts={() => setView("alerts")}
+      />
       
       {(loading || docLoading) && (
         <div className="progress-bar">

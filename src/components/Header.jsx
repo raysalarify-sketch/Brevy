@@ -1,6 +1,6 @@
 import React from 'react';
 
-const Header = ({ templateCount, onHome }) => {
+const Header = ({ templateCount, onHome, onAlerts }) => {
   return (
     <header className="glass-header" style={{
       position: 'sticky',
@@ -15,8 +15,7 @@ const Header = ({ templateCount, onHome }) => {
       justifyContent: 'space-between'
     }}>
       <div onClick={onHome} style={{ display: 'flex', alignItems: 'center', gap: 12, cursor: 'pointer' }}>
-      <div className="flex items-center gap-3 cursor-pointer" onClick={() => onHome()}>
-        <div className="w-10 h-10 bg-primary rounded-xl flex items-center justify-center shadow-lg" style={{
+        <div style={{
           width: 40,
           height: 40,
           borderRadius: 12,
@@ -34,8 +33,9 @@ const Header = ({ templateCount, onHome }) => {
             <path d="M12 12L4 17" stroke="white" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" opacity="0.5"/>
           </svg>
         </div>
-        <h1 className="text-2xl font-serif tracking-tight text-primary m-0" style={{ fontSize: 24, fontWeight: 700, fontFamily: 'DM Serif Display', margin: 0 }}>Brevy</h1>
+        <h1 style={{ fontSize: 24, fontWeight: 700, fontFamily: 'DM Serif Display', margin: 0, color: 'var(--primary)' }}>Brevy</h1>
       </div>
+
       <div style={{ display: 'flex', gap: 24, alignItems: 'center' }}>
         <button 
           onClick={onHome} 
@@ -45,8 +45,7 @@ const Header = ({ templateCount, onHome }) => {
             fontSize: 14, 
             fontWeight: 600, 
             color: 'var(--text-main)', 
-            cursor: 'pointer',
-            opacity: 1
+            cursor: 'pointer'
           }}
         >Prompt Studio</button>
         <button 
@@ -58,12 +57,13 @@ const Header = ({ templateCount, onHome }) => {
             fontWeight: 600, 
             color: 'var(--text-muted)', 
             cursor: 'pointer',
-            transition: 'var(--transition)'
+            transition: '0.2s'
           }}
           onMouseOver={(e) => e.target.style.color = 'var(--primary)'}
           onMouseOut={(e) => e.target.style.color = 'var(--text-muted)'}
         >Alert Center</button>
       </div>
+
       <div style={{ fontSize: 12, color: 'var(--text-muted)', fontWeight: 500 }}>
         <span style={{ color: 'var(--primary)', fontWeight: 700 }}>{templateCount}</span> templates available
       </div>
