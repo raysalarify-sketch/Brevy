@@ -198,38 +198,41 @@ export default function App() {
 
   const handleAccessAuthorize = async () => {
     if (!refCode) return alert('추천인 코드를 입력해 주세요.');
+    const upperCode = refCode.toUpperCase();
+
+    // 1. 하드코딩된 예외 코드 먼저 확인 (데이터베이스 연결 없이도 작동)
+    if (upperCode === 'BREVY-AI' || upperCode === 'ADMIN-BREVY') {
+      setIsAuthorized(true);
+      setIsAdmin(upperCode === 'ADMIN-BREVY');
+      localStorage.setItem('brevy_session_code', upperCode);
+      alert(`${upperCode === 'ADMIN-BREVY' ? '관리자' : '게스트'}님, 환영합니다! (로컬 모드)`);
+      return;
+    }
     
     try {
-      // 1. Supabase에서 코드 확인
+      // 2. 그 외의 경우 Supabase에서 코드 확인
       const { data: codeData, error } = await supabase
         .from('access_codes')
         .select('*')
-        .eq('code', refCode.toUpperCase())
+        .eq('code', upperCode)
         .single();
 
       if (codeData) {
         setIsAuthorized(true);
         setIsAdmin(codeData.is_admin);
-        localStorage.setItem('brevy_session_code', refCode.toUpperCase());
+        localStorage.setItem('brevy_session_code', upperCode);
         
         // 접속 로그 기록
-        await supabase.from('access_logs').insert({ code: refCode.toUpperCase(), success: true });
+        await supabase.from('access_logs').insert({ code: upperCode, success: true });
         
         alert(`${codeData.user_name}님, 환영합니다!`);
       } else {
-        await supabase.from('access_logs').insert({ code: refCode.toUpperCase(), success: false });
+        await supabase.from('access_logs').insert({ code: upperCode, success: false });
         alert('유효하지 않은 코드입니다. 다시 확인해 주세요.');
       }
     } catch (err) {
       console.error('Auth Error:', err);
-      // 백엔드 미연동 시 로컬 모드 (테스트용)
-      if (refCode.toUpperCase() === 'BREVY-AI' || refCode.toUpperCase() === 'ADMIN-BREVY') {
-        setIsAuthorized(true);
-        setIsAdmin(refCode.toUpperCase() === 'ADMIN-BREVY');
-        localStorage.setItem('brevy_session_code', refCode.toUpperCase());
-      } else {
-        alert('입장 코드를 확인 중 오류가 발생했습니다.');
-      }
+      alert('입장 코드를 확인 중 오류가 발생했습니다.');
     }
   };
 
