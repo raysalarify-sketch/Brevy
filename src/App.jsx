@@ -127,6 +127,10 @@ export default function App() {
 
   const handleSubmit = useCallback(async () => {
     if (!tpl) return;
+    
+    const storedCode = localStorage.getItem('brevy_session_code');
+    if (!storedCode) return alert('세션이 만료되었습니다. 다시 로그인해 주세요.');
+
     setLoading(true); setError(""); setRes(null);
     const fieldsText = tpl.f.map(f => `${f.l}: ${fld[f.k] || "(미입력)"}`).join("\n");
     const dv = DIVS.find(d => d.cats.some(c => c.t.some(t => t.id === tpl.id)));
@@ -136,11 +140,27 @@ export default function App() {
     try {
       const text = await callApi(SYS_PROMPT, msg);
       const jsonStr = text.replace(/```json|```/g, "").trim();
-      setRes(JSON.parse(jsonStr));
+      const parsedRes = JSON.parse(jsonStr);
+      setRes(parsedRes);
       setView("result");
+
+      // 생성 로그 기록 (Supabase)
+      await supabase.from('prompt_history').insert({
+        code: storedCode,
+        template_name: tpl.n,
+        category: c.l,
+        success: true
+      });
+
     } catch (e) {
       console.error(e);
       setError("변환 중 오류가 발생했습니다.");
+      await supabase.from('prompt_history').insert({
+        code: storedCode,
+        template_name: tpl.n,
+        success: false,
+        error_msg: e.message
+      });
     } finally {
       setLoading(false);
     }
@@ -180,25 +200,35 @@ export default function App() {
     ctx.fillStyle = "#fff";
     ctx.fillRect(0, 0, c.width, c.height);
     ctx.strokeStyle = "#1c1917";
-    ctx.lineWidth = 2;
+    ctx.lineWidth = 2.5;
     ctx.lineCap = "round";
+    ctx.lineJoin = "round";
   }, []);
+
+  const getPos = (e) => {
+    const c = sigCanvas.current;
+    const r = c.getBoundingClientRect();
+    const clientX = e.touches ? e.touches[0].clientX : e.clientX;
+    const clientY = e.touches ? e.touches[0].clientY : e.clientY;
+    return { x: clientX - r.left, y: clientY - r.top };
+  };
   
   const onDown = e => {
     sigDrawing.current = true;
-    const c = sigCanvas.current;
-    const r = c.getBoundingClientRect();
-    const ctx = c.getContext("2d");
+    const { x, y } = getPos(e);
+    const ctx = sigCanvas.current.getContext("2d");
     ctx.beginPath();
-    ctx.moveTo(e.clientX - r.left, e.clientY - r.top);
+    ctx.moveTo(x, y);
+    if (e.cancelable) e.preventDefault();
   };
   
   const onMove = e => {
     if (!sigDrawing.current) return;
-    const c = sigCanvas.current;
-    const r = c.getBoundingClientRect();
-    c.getContext("2d").lineTo(e.clientX - r.left, e.clientY - r.top);
-    c.getContext("2d").stroke();
+    const { x, y } = getPos(e);
+    const ctx = sigCanvas.current.getContext("2d");
+    ctx.lineTo(x, y);
+    ctx.stroke();
+    if (e.cancelable) e.preventDefault();
   };
   
   const onUp = () => { sigDrawing.current = false; };
@@ -207,6 +237,14 @@ export default function App() {
     if (!sigCanvas.current) return;
     setSigData(sigCanvas.current.toDataURL());
     setSigMode(false);
+  };
+
+  const clearSig = () => {
+    const c = sigCanvas.current;
+    const ctx = c.getContext("2d");
+    ctx.fillStyle = "#fff";
+    ctx.fillRect(0, 0, c.width, c.height);
+    setSigData(null);
   };
 
   useEffect(() => {
