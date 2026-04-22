@@ -23,8 +23,8 @@ export default async function handler(req, res) {
     parts: [{ text: msg.content }]
   }));
 
-  // Use stable v1 API
-  const url = `https://generativelanguage.googleapis.com/v1/models/gemini-1.5-flash:generateContent?key=${apiKey}`;
+  // Use the most compatible model name
+  const url = `https://generativelanguage.googleapis.com/v1/models/gemini-pro:generateContent?key=${apiKey}`;
 
   try {
     const response = await fetch(url, {
