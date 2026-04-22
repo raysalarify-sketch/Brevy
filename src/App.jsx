@@ -327,7 +327,8 @@ export default function App() {
           )}
         </div>
       </div>
-    );
+  if (isAdmin) {
+    return <AdminDashboard onExit={handleLogout} />;
   }
 
   return (
