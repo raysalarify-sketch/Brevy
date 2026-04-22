@@ -128,6 +128,12 @@ export default function App() {
   const handleSubmit = useCallback(async () => {
     if (!tpl) return;
     
+    // 유효성 검사: 모든 필드가 비어있는지 확인
+    const hasContent = tpl.f.some(f => fld[f.k] && fld[f.k].trim() !== "");
+    if (!hasContent) {
+      return alert("템플릿의 내용을 입력해 주세요.");
+    }
+    
     const storedCode = localStorage.getItem('brevy_session_code');
     if (!storedCode) return alert('세션이 만료되었습니다. 다시 로그인해 주세요.');
 
