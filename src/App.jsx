@@ -1,5 +1,6 @@
 import { useState, useCallback, useRef, useEffect } from "react";
 import "./index.css";
+import { supabase } from './lib/supabase';
 import { DIVS, SYS_PROMPT, SYS_DOC } from "./data/constants";
 import useClaude from "./hooks/useClaude";
 import Header from "./components/Header";
@@ -210,24 +211,68 @@ export default function App() {
 
   const complexityColors = { low: "#059669", medium: "#ca8a04", high: "#dc2626" };
 
+  // Supabase Integration
   const [showRequestForm, setShowRequestForm] = useState(false);
-  const [requestData, setRequestData] = useState({ email: '', name: '' });
+  const [requestData, setRequestData] = useState({ email: '', name: '', content: '' });
 
-  const handleRequestAccess = () => {
-    if (!requestData.email || !requestData.name) return alert('이메일과 성함을 모두 입력해 주세요.');
+  const handleAuthorize = async () => {
+    if (!refCode) return alert('추천인 코드를 입력해 주세요.');
     
-    const requests = JSON.parse(localStorage.getItem('brevy_pending_requests') || '[]');
-    requests.push({ ...requestData, time: new Date().toISOString(), id: Date.now() });
-    localStorage.setItem('brevy_pending_requests', JSON.stringify(requests));
-    
-    alert('입장 요청이 완료되었습니다! 관리자 승인 후 입력하신 메일로 코드가 발송됩니다.');
-    setShowRequestForm(false);
-    setRequestData({ email: '', name: '' });
+    try {
+      // 1. Supabase에서 코드 확인
+      const { data: codeData, error } = await supabase
+        .from('access_codes')
+        .select('*')
+        .eq('code', refCode.toUpperCase())
+        .single();
+
+      if (codeData) {
+        setIsAuthorized(true);
+        setIsAdmin(codeData.is_admin);
+        localStorage.setItem('brevy_session_code', refCode.toUpperCase());
+        
+        // 접속 로그 기록
+        await supabase.from('access_logs').insert({ code: refCode.toUpperCase(), success: true });
+        
+        alert(`${codeData.user_name}님, 환영합니다!`);
+      } else {
+        await supabase.from('access_logs').insert({ code: refCode.toUpperCase(), success: false });
+        alert('유효하지 않은 코드입니다. 다시 확인해 주세요.');
+      }
+    } catch (err) {
+      console.error('Auth Error:', err);
+      // 백엔드 미연동 시 로컬 모드 (테스트용)
+      if (refCode.toUpperCase() === 'BREVY-AI' || refCode.toUpperCase() === 'ADMIN-BREVY') {
+        setIsAuthorized(true);
+        setIsAdmin(refCode.toUpperCase() === 'ADMIN-BREVY');
+        localStorage.setItem('brevy_session_code', refCode.toUpperCase());
+      } else {
+        alert('입장 코드를 확인 중 오류가 발생했습니다.');
+      }
+    }
   };
 
-  if (isAdmin) {
-    return <AdminDashboard onExit={handleAdminExit} />;
-  }
+  const handleRequestAccess = async () => {
+    if (!requestData.email || !requestData.name) return alert('이메일과 성함을 모두 입력해 주세요.');
+    
+    try {
+      const { error } = await supabase.from('prompt_requests').insert({
+        user_name: requestData.name,
+        email: requestData.email,
+        content: requestData.content || '입장 코드 요청',
+        status: 'pending'
+      });
+
+      if (error) throw error;
+      
+      alert('입장 요청이 데이터베이스에 등록되었습니다! 관리자가 확인 후 코드를 발송해 드립니다.');
+      setShowRequestForm(false);
+      setRequestData({ email: '', name: '', content: '' });
+    } catch (err) {
+      console.error('Request Error:', err);
+      alert('요청을 보내는 중 오류가 발생했습니다.');
+    }
+  };
 
   if (!isAuthorized) {
     return (

@@ -1,39 +1,71 @@
 import React, { useState, useEffect } from 'react';
+import { supabase } from '../lib/supabase';
 
 const AdminDashboard = ({ onExit }) => {
   const [logs, setLogs] = useState([]);
   const [pendingRequests, setPendingRequests] = useState([]);
-  const [currentCode, setCurrentCode] = useState(localStorage.getItem('brevy_ref_code') || 'BREVY-AI');
+  const [currentCode, setCurrentCode] = useState('로딩 중...');
   const [newCode, setNewCode] = useState('');
+  const [accessCodes, setAccessCodes] = useState([]);
 
   useEffect(() => {
-    const savedLogs = localStorage.getItem('brevy_access_logs');
-    if (savedLogs) setLogs(JSON.parse(savedLogs).reverse());
-
-    const savedRequests = localStorage.getItem('brevy_pending_requests');
-    if (savedRequests) setPendingRequests(JSON.parse(savedRequests).reverse());
+    fetchAdminData();
   }, []);
 
-  const updateCode = () => {
+  const fetchAdminData = async () => {
+    try {
+      // 1. 접속 로그 가져오기
+      const { data: logData } = await supabase
+        .from('access_logs')
+        .select('*')
+        .order('created_at', { ascending: false })
+        .limit(50);
+      if (logData) setLogs(logData);
+
+      // 2. 입장 요청 가져오기
+      const { data: reqData } = await supabase
+        .from('prompt_requests')
+        .select('*')
+        .order('created_at', { ascending: false });
+      if (reqData) setPendingRequests(reqData);
+
+      // 3. 현재 유효한 코드들 가져오기
+      const { data: codeData } = await supabase
+        .from('access_codes')
+        .select('*');
+      if (codeData) {
+        setAccessCodes(codeData);
+        const mainCode = codeData.find(c => !c.is_admin)?.code || 'N/A';
+        setCurrentCode(mainCode);
+      }
+    } catch (err) {
+      console.error('Fetch Error:', err);
+    }
+  };
+
+  const createCode = async () => {
     if (!newCode.trim()) return alert('새 코드를 입력해주세요.');
-    localStorage.setItem('brevy_ref_code', newCode.toUpperCase());
-    setCurrentCode(newCode.toUpperCase());
-    setNewCode('');
-    alert('입장 코드가 성공적으로 변경되었습니다.');
-  };
-
-  const clearLogs = () => {
-    if (window.confirm('모든 접속 이력을 삭제하시겠습니까?')) {
-      localStorage.removeItem('brevy_access_logs');
-      setLogs([]);
+    const code = newCode.toUpperCase();
+    
+    try {
+      const { error } = await supabase
+        .from('access_codes')
+        .insert({ code: code, user_name: 'New User', is_admin: false });
+      
+      if (error) throw error;
+      
+      alert(`새로운 코드 [${code}]가 등록되었습니다.`);
+      setNewCode('');
+      fetchAdminData();
+    } catch (err) {
+      alert('코드 등록 중 오류가 발생했습니다. 중복된 코드일 수 있습니다.');
     }
   };
 
-  const clearRequests = () => {
-    if (window.confirm('모든 요청 내역을 삭제하시겠습니까?')) {
-      localStorage.removeItem('brevy_pending_requests');
-      setPendingRequests([]);
-    }
+  const deleteRequest = async (id) => {
+    if (!window.confirm('이 요청을 삭제하시겠습니까?')) return;
+    await supabase.from('prompt_requests').delete().eq('id', id);
+    fetchAdminData();
   };
 
   return (
@@ -41,20 +73,19 @@ const AdminDashboard = ({ onExit }) => {
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '3rem' }}>
         <div>
           <h2 className="serif" style={{ fontSize: '2.5rem', marginBottom: '0.5rem' }}>Admin Console</h2>
-          <p style={{ color: 'var(--text-muted)' }}>시스템 접속 이력 및 입장 요청을 관리합니다.</p>
+          <p style={{ color: 'var(--text-muted)' }}>클라우드 데이터베이스를 통한 실시간 관리 시스템입니다.</p>
         </div>
         <div style={{ display: 'flex', gap: '12px' }}>
-          <button className="btn-secondary" onClick={clearLogs}>로그 초기화</button>
+          <button className="btn-secondary" onClick={fetchAdminData}>데이터 새로고침 🔄</button>
           <button className="btn-primary" onClick={onExit}>대시보드 나가기</button>
         </div>
       </div>
 
       <div className="home-layout">
-        {/* Left Content */}
         <div>
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(140px, 1fr))', gap: '20px', marginBottom: '32px' }}>
             <div className="card" style={{ textAlign: 'center' }}>
-              <div style={{ fontSize: '11px', color: 'var(--text-muted)', marginBottom: '8px', fontWeight: 600 }}>총 입장 횟수</div>
+              <div style={{ fontSize: '11px', color: 'var(--text-muted)', marginBottom: '8px', fontWeight: 600 }}>총 접속 로그</div>
               <div style={{ fontSize: '1.75rem', fontWeight: 700 }}>{logs.length}</div>
             </div>
             <div className="card" style={{ textAlign: 'center', background: 'var(--primary)', color: 'white' }}>
@@ -62,111 +93,60 @@ const AdminDashboard = ({ onExit }) => {
               <div style={{ fontSize: '1.75rem', fontWeight: 700 }}>{pendingRequests.length}</div>
             </div>
             <div className="card" style={{ textAlign: 'center' }}>
-              <div style={{ fontSize: '11px', color: 'var(--text-muted)', marginBottom: '8px', fontWeight: 600 }}>시스템 상태</div>
-              <div style={{ fontSize: '1.25rem', fontWeight: 700, color: '#059669' }}>ACTIVE</div>
+              <div style={{ fontSize: '11px', color: 'var(--text-muted)', marginBottom: '8px', fontWeight: 600 }}>활성 코드 수</div>
+              <div style={{ fontSize: '1.75rem', fontWeight: 700 }}>{accessCodes.length}</div>
             </div>
           </div>
 
-          {/* Pending Requests Table */}
           <div className="card" style={{ padding: 0, overflow: 'hidden', marginBottom: '32px', border: '2px solid var(--primary)' }}>
             <div style={{ padding: '16px 20px', borderBottom: '1px solid var(--border)', fontWeight: 700, display: 'flex', justifyContent: 'space-between', background: '#f8fafc', alignItems: 'center' }}>
-              <span style={{ fontSize: '14px' }}>Pending Requests (신청 명단)</span>
-              <button onClick={clearRequests} style={{ fontSize: '10px', color: '#dc2626', background: 'none', border: 'none', cursor: 'pointer', fontWeight: 700 }}>초기화</button>
+              <span style={{ fontSize: '14px' }}>Cloud Access Requests (실시간 신청 명단)</span>
             </div>
             <div className="table-container">
               <table style={{ width: '100%', borderCollapse: 'collapse' }}>
                 <thead>
                   <tr style={{ background: 'var(--bg)', borderBottom: '1px solid var(--border)', fontSize: '10px', color: 'var(--text-muted)' }}>
-                    <th style={{ padding: '12px 20px', textAlign: 'left' }}>REQUESTED TIME</th>
-                    <th style={{ padding: '12px 20px', textAlign: 'left' }}>NAME</th>
+                    <th style={{ padding: '12px 20px', textAlign: 'left' }}>DATE</th>
+                    <th style={{ padding: '12px 20px', textAlign: 'left' }}>USER</th>
                     <th style={{ padding: '12px 20px', textAlign: 'left' }}>EMAIL</th>
+                    <th style={{ padding: '12px 20px', textAlign: 'left' }}>ACTION</th>
                   </tr>
                 </thead>
                 <tbody>
-                  {pendingRequests.length === 0 ? (
-                    <tr>
-                      <td colSpan="3" style={{ padding: '40px', textAlign: 'center', color: 'var(--text-muted)', fontSize: '13px' }}>대기 중인 요청이 없습니다.</td>
+                  {pendingRequests.map((req) => (
+                    <tr key={req.id} style={{ borderBottom: '1px solid var(--border)', fontSize: '13px' }}>
+                      <td style={{ padding: '12px 20px' }}>{new Date(req.created_at).toLocaleDateString()}</td>
+                      <td style={{ padding: '12px 20px', fontWeight: 700 }}>{req.user_name}</td>
+                      <td style={{ padding: '12px 20px', color: 'var(--primary)' }}>{req.email}</td>
+                      <td style={{ padding: '12px 20px' }}>
+                        <button onClick={() => deleteRequest(req.id)} style={{ color: '#dc2626', background: 'none', border: 'none', cursor: 'pointer', fontSize: '11px' }}>삭제</button>
+                      </td>
                     </tr>
-                  ) : (
-                    pendingRequests.map((req, i) => (
-                      <tr key={i} style={{ borderBottom: '1px solid var(--border)', fontSize: '13px' }}>
-                        <td style={{ padding: '12px 20px' }}>{new Date(req.time).toLocaleString()}</td>
-                        <td style={{ padding: '12px 20px', fontWeight: 700 }}>{req.name}</td>
-                        <td style={{ padding: '12px 20px', color: 'var(--primary)', fontWeight: 600 }}>{req.email}</td>
-                      </tr>
-                    ))
-                  )}
-                </tbody>
-              </table>
-            </div>
-          </div>
-
-          {/* Recent Access Logs */}
-          <div className="card" style={{ padding: 0, overflow: 'hidden' }}>
-            <div style={{ padding: '16px 20px', borderBottom: '1px solid var(--border)', fontWeight: 700, fontSize: '14px' }}>Recent Logs (접속 기록)</div>
-            <div className="table-container">
-              <table style={{ width: '100%', borderCollapse: 'collapse' }}>
-                <thead>
-                  <tr style={{ background: 'var(--bg)', borderBottom: '1px solid var(--border)', fontSize: '10px', color: 'var(--text-muted)' }}>
-                    <th style={{ padding: '12px 20px', textAlign: 'left' }}>TIME</th>
-                    <th style={{ padding: '12px 20px', textAlign: 'left' }}>CODE</th>
-                    <th style={{ padding: '12px 20px', textAlign: 'left' }}>STATUS</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {logs.length === 0 ? (
-                    <tr>
-                      <td colSpan="3" style={{ padding: '30px', textAlign: 'center', color: 'var(--text-muted)' }}>No logs found.</td>
-                    </tr>
-                  ) : (
-                    logs.map((log, i) => (
-                      <tr key={i} style={{ borderBottom: '1px solid var(--border)', fontSize: '12px' }}>
-                        <td style={{ padding: '12px 20px' }}>{new Date(log.time).toLocaleString()}</td>
-                        <td style={{ padding: '12px 20px', fontFamily: 'monospace', fontWeight: 600 }}>{log.code}</td>
-                        <td style={{ padding: '12px 20px' }}>
-                          <span style={{ 
-                            padding: '3px 6px', borderRadius: '4px', fontSize: '9px', fontWeight: 700,
-                            background: log.success ? '#f0fdf4' : '#fef2f2',
-                            color: log.success ? '#166534' : '#991b1b'
-                          }}>
-                            {log.success ? 'SUCCESS' : 'FAILED'}
-                          </span>
-                        </td>
-                      </tr>
-                    ))
-                  )}
+                  ))}
                 </tbody>
               </table>
             </div>
           </div>
         </div>
 
-        {/* Right Sidebar */}
         <div>
           <div className="card sticky-side" style={{ border: '2px solid var(--primary)' }}>
-            <h3 style={{ fontSize: '18px', marginBottom: '20px', borderBottom: '1px solid var(--border)', paddingBottom: '12px' }}>Access Settings</h3>
-            
-            <div style={{ marginBottom: '24px' }}>
-              <div style={{ fontSize: '12px', color: 'var(--text-muted)', marginBottom: '4px', fontWeight: 600 }}>CURRENT ACCESS CODE</div>
-              <div style={{ fontSize: '24px', fontWeight: 800, color: 'var(--primary)', letterSpacing: '1px' }}>{currentCode}</div>
-            </div>
-
+            <h3 style={{ fontSize: '18px', marginBottom: '20px', borderBottom: '1px solid var(--border)', paddingBottom: '12px' }}>Code Management</h3>
             <div style={{ marginBottom: '20px' }}>
-              <label style={{ fontSize: '12px', fontWeight: 600, display: 'block', marginBottom: '8px' }}>UPDATE CODE</label>
+              <label style={{ fontSize: '12px', fontWeight: 600, display: 'block', marginBottom: '8px' }}>ADD NEW CODE</label>
               <input 
                 className="input-text" 
-                placeholder="New code" 
+                placeholder="Ex: SPECIAL-2024" 
                 value={newCode}
                 onChange={e => setNewCode(e.target.value)}
                 style={{ marginBottom: '12px', height: '48px' }}
               />
-              <button className="btn-primary" style={{ width: '100%', justifyContent: 'center', height: '48px' }} onClick={updateCode}>
-                Apply New Code
+              <button className="btn-primary" style={{ width: '100%', justifyContent: 'center', height: '48px' }} onClick={createCode}>
+                발급 및 등록
               </button>
             </div>
-
-            <div style={{ fontSize: '11px', color: 'var(--text-muted)', lineHeight: 1.6, background: 'var(--bg)', padding: '12px', borderRadius: '8px' }}>
-              <strong>관리자 안내:</strong> 사용자가 입장 요청을 제출하면 대기 명단에 실시간으로 추가됩니다. 확인 후 해당 메일로 수동으로 코드를 발송해 주시면 됩니다.
+            <div style={{ fontSize: '11px', color: 'var(--text-muted)', background: 'var(--bg)', padding: '12px', borderRadius: '8px' }}>
+              <strong>Admin Tip:</strong> 여기서 발급한 코드는 즉시 클라우드 DB에 반영되어 사용자가 바로 사용할 수 있습니다.
             </div>
           </div>
         </div>
