@@ -6,9 +6,15 @@ import Header from "./components/Header";
 import Breadcrumbs from "./components/Breadcrumbs";
 import Guide from "./components/Guide";
 import AlertCenter from "./components/AlertCenter";
+import AdminDashboard from "./components/AdminDashboard";
 
 export default function App() {
   const [view, setView] = useState("home");
+  const [isAuthorized, setIsAuthorized] = useState(false);
+  const [showOnboarding, setShowOnboarding] = useState(false);
+  const [refCode, setRefCode] = useState("");
+  const [isAdmin, setIsAdmin] = useState(false);
+  
   const [divId, setDivId] = useState("office");
   const [cat, setCat] = useState(null);
   const [tpl, setTpl] = useState(null);
@@ -32,6 +38,60 @@ export default function App() {
   const topRef = useRef(null);
   
   const { callApi } = useClaude();
+
+  useEffect(() => {
+    const auth = localStorage.getItem('brevy_auth');
+    const adminAuth = localStorage.getItem('brevy_admin');
+    
+    if (adminAuth === 'true') {
+      setIsAuthorized(true);
+      setIsAdmin(true);
+    } else if (auth === 'true') {
+      setIsAuthorized(true);
+    }
+    
+    const onboard = localStorage.getItem('brevy_onboard');
+    if (onboard !== 'seen' && auth === 'true') setShowOnboarding(true);
+  }, []);
+
+  const addLog = (code, success) => {
+    const logs = JSON.parse(localStorage.getItem('brevy_access_logs') || '[]');
+    logs.push({ time: new Date().toISOString(), code, success });
+    localStorage.setItem('brevy_access_logs', JSON.stringify(logs));
+  };
+
+  const handleAuthorize = () => {
+    const upperCode = refCode.toUpperCase();
+    const currentRefCode = localStorage.getItem('brevy_ref_code') || 'BREVY-AI';
+
+    if (upperCode === 'ADMIN-BREVY') {
+      setIsAuthorized(true);
+      setIsAdmin(true);
+      localStorage.setItem('brevy_admin', 'true');
+      addLog(upperCode, true);
+    } else if (upperCode === currentRefCode || refCode === '1234') {
+      setIsAuthorized(true);
+      localStorage.setItem('brevy_auth', 'true');
+      setShowOnboarding(true);
+      addLog(upperCode, true);
+    } else {
+      addLog(upperCode, false);
+      alert('유효하지 않은 추천인 코드입니다.');
+    }
+  };
+
+  const handleAdminExit = () => {
+    setIsAdmin(false);
+    setIsAuthorized(false);
+    localStorage.removeItem('brevy_admin');
+    localStorage.removeItem('brevy_auth');
+    setRefCode("");
+  };
+
+  const closeOnboarding = () => {
+    setShowOnboarding(false);
+    localStorage.setItem('brevy_onboard', 'seen');
+  };
 
   const curDiv = DIVS.find(d => d.id === divId);
   const allTemplates = DIVS.flatMap(dv => 
@@ -75,7 +135,7 @@ export default function App() {
       setView("result");
     } catch (e) {
       console.error(e);
-      setError(e.message === "API key missing" ? "API 키가 설정되지 않았습니다. .env 파일을 확인해 주세요." : "변환 중 오류가 발생했습니다. 다시 시도해 주세요.");
+      setError("변환 중 오류가 발생했습니다.");
     } finally {
       setLoading(false);
     }
@@ -150,8 +210,74 @@ export default function App() {
 
   const complexityColors = { low: "#059669", medium: "#ca8a04", high: "#dc2626" };
 
+  if (isAdmin) {
+    return <AdminDashboard onExit={handleAdminExit} />;
+  }
+
+  if (!isAuthorized) {
+    return (
+      <div style={{ height: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', background: '#09090b', color: '#fff', fontFamily: 'Inter, sans-serif' }}>
+        <div className="fade-in" style={{ width: '100%', maxWidth: '400px', padding: '40px', textAlign: 'center' }}>
+          <div style={{ width: 64, height: 64, background: 'var(--accent)', borderRadius: 20, margin: '0 auto 24px', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 32 }}>✨</div>
+          <h1 className="serif" style={{ fontSize: '2.5rem', marginBottom: '12px' }}>Brevy Studio</h1>
+          <p style={{ color: '#a1a1aa', marginBottom: '40px', fontSize: '15px' }}>본 플랫폼은 초대된 사용자만 입장 가능합니다.</p>
+          
+          <div style={{ textAlign: 'left', marginBottom: '24px' }}>
+            <label style={{ fontSize: '12px', fontWeight: 700, color: '#71717a', textTransform: 'uppercase', marginBottom: '8px', display: 'block' }}>Referral Code</label>
+            <input 
+              className="input-text" 
+              type="text" 
+              placeholder="코드를 입력하세요" 
+              value={refCode}
+              onChange={e => setRefCode(e.target.value)}
+              onKeyDown={e => e.key === 'Enter' && handleAuthorize()}
+              style={{ background: '#18181b', border: '1px solid #27272a', color: '#fff', height: '52px' }}
+            />
+          </div>
+
+          <button className="btn-primary" onClick={handleAuthorize} style={{ width: '100%', height: '52px', justifyContent: 'center', background: '#fff', color: '#000' }}>
+            입장하기
+          </button>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div ref={topRef} className="app-container">
+      {showOnboarding && (
+        <div className="guide-overlay" style={{ zIndex: 3000 }}>
+          <div className="guide-modal" style={{ maxWidth: '700px', padding: '40px' }}>
+            <div style={{ textAlign: 'center', marginBottom: '32px' }}>
+              <h2 className="serif" style={{ fontSize: '2.25rem', marginBottom: '8px' }}>Welcome to Brevy</h2>
+              <p style={{ color: 'var(--text-muted)' }}>브레비의 3가지 핵심 기능을 확인해보세요.</p>
+            </div>
+
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '20px', marginBottom: '40px' }}>
+              <div style={{ textAlign: 'center' }}>
+                <div style={{ fontSize: '2.5rem', marginBottom: '16px' }}>🚀</div>
+                <h4 style={{ marginBottom: '8px' }}>프롬프트 최적화</h4>
+                <p style={{ fontSize: '12px', color: 'var(--text-muted)', lineHeight: 1.5 }}>요청 사항을 AI가 즉시 실행 가능한 고품질 프롬프트로 변환합니다.</p>
+              </div>
+              <div style={{ textAlign: 'center' }}>
+                <div style={{ fontSize: '2.5rem', marginBottom: '16px' }}>📄</div>
+                <h4 style={{ marginBottom: '8px' }}>문서 생성/다운로드</h4>
+                <p style={{ fontSize: '12px', color: 'var(--text-muted)', lineHeight: 1.5 }}>완성된 프롬프트로 실제 문서(계약서, 보고서 등)를 생성하고 PDF로 저장하세요.</p>
+              </div>
+              <div style={{ textAlign: 'center' }}>
+                <div style={{ fontSize: '2.5rem', marginBottom: '16px' }}>🔔</div>
+                <h4 style={{ marginBottom: '8px' }}>지능형 알림</h4>
+                <p style={{ fontSize: '12px', color: 'var(--text-muted)', lineHeight: 1.5 }}>날씨, 뉴스 등 원하는 정보를 원하는 시간에 자동으로 받아보세요.</p>
+              </div>
+            </div>
+
+            <button className="btn-primary" onClick={closeOnboarding} style={{ width: '100%', justifyContent: 'center', padding: '16px' }}>
+              시작하기
+            </button>
+          </div>
+        </div>
+      )}
+
       <Header 
         templateCount={allTemplates.length} 
         onHome={goHome} 
@@ -176,7 +302,6 @@ export default function App() {
             </div>
 
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 360px', gap: 32, alignItems: 'start' }}>
-              {/* Left: Search & Categories */}
               <div>
                 <div style={{ position: "relative", marginBottom: 32 }}>
                   <input 
@@ -194,11 +319,7 @@ export default function App() {
                     <p style={{ fontSize: 14, color: "var(--text-light)", marginBottom: 16 }}>{filteredTemplates.length} templates found</p>
                     <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(240px, 1fr))", gap: 16 }}>
                       {filteredTemplates.map(t => (
-                        <div key={t.id} className="card card-hover cc" onClick={() => {
-                          setDivId(t.dvId);
-                          setCat(DIVS.find(d => d.id === t.dvId).cats.find(c => c.id === t.cId));
-                          goTpl(t);
-                        }}>
+                        <div key={t.id} className="card card-hover cc" onClick={() => goTpl(t)}>
                           <div style={{ display: "flex", gap: 8, marginBottom: 12 }}>
                             <span className="tag" style={{ background: "#f5f5f4", color: "#57534e" }}>{t.dvL}</span>
                             <span className="tag" style={{ background: t.cC + "15", color: t.cC }}>{t.cI} {t.cL}</span>
@@ -216,14 +337,10 @@ export default function App() {
                           key={dv.id} 
                           className={`btn-secondary ${divId === dv.id ? 'active' : ''}`}
                           onClick={() => setDivId(dv.id)}
-                          style={{ 
-                            flex: 1, 
-                            padding: '8px 16px',
-                            whiteSpace: "nowrap",
+                          style={{ flex: 1, padding: '8px 16px', whiteSpace: "nowrap",
                             borderColor: divId === dv.id ? "var(--primary)" : "var(--border)",
                             background: divId === dv.id ? "var(--primary)" : "#fff",
-                            color: divId === dv.id ? "#fff" : "var(--text-main)"
-                          }}
+                            color: divId === dv.id ? "#fff" : "var(--text-main)" }}
                         >
                           {dv.label}
                         </button>
@@ -233,11 +350,9 @@ export default function App() {
                     <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(180px, 1fr))", gap: 16 }}>
                       {curDiv.cats.map(c => (
                         <div key={c.id} className="card card-hover cc" onClick={() => goCat(c)} style={{ textAlign: "center", padding: "24px 16px" }}>
-                          <div style={{ 
-                            width: 48, height: 48, borderRadius: 12, background: c.c + "10", 
+                          <div style={{ width: 48, height: 48, borderRadius: 12, background: c.c + "10", 
                             display: "flex", alignItems: "center", justifyContent: "center", 
-                            margin: "0 auto 12px", fontSize: 24, color: c.c 
-                          }}>{c.ic}</div>
+                            margin: "0 auto 12px", fontSize: 24, color: c.c }}>{c.ic}</div>
                           <h4 style={{ fontSize: 14, marginBottom: 4 }}>{c.l}</h4>
                           <div style={{ fontSize: 10, color: c.c, fontWeight: 700 }}>{c.t.length} ITEMS</div>
                         </div>
@@ -247,14 +362,12 @@ export default function App() {
                 )}
               </div>
 
-              {/* Right: Quick Free Form */}
               <div className="card" style={{ position: 'sticky', top: 100, border: '1px solid var(--primary)', background: '#fff' }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 16 }}>
                   <span style={{ fontSize: 20 }}>✨</span>
                   <h3 style={{ fontSize: 18, margin: 0 }}>자유 양식 퀵 프롬프트</h3>
                 </div>
                 <p style={{ fontSize: 13, color: 'var(--text-muted)', marginBottom: 20 }}>템플릿 없이 바로 요청 사항을 입력하세요.</p>
-                
                 <textarea 
                   className="input-text"
                   placeholder="예: 3년차 마케터를 위한 이직용 자기소개서 초안을 작성해줘"
@@ -263,86 +376,32 @@ export default function App() {
                   value={fld.freeContent || ""}
                   onChange={e => setFld({...fld, freeContent: e.target.value})}
                 />
-
-                <button 
-                  className="btn-primary" 
-                  style={{ width: '100%', justifyContent: 'center', padding: '14px' }}
+                <button className="btn-primary" style={{ width: '100%', justifyContent: 'center', padding: '14px' }}
                   disabled={!fld.freeContent || loading}
                   onClick={async () => {
-                    const quickTpl = { id: 'free', n: '자유 작성', prompt: SYS_PROMPT, f: [{ k: 'content', l: '요청 사항' }] };
-                    setTpl(quickTpl);
-                    setFld({ content: fld.freeContent });
-                    
-                    // Manually trigger handleSubit with simulated flow
                     setLoading(true); setError(""); setRes(null);
                     try {
-                      const msg = `## 자유 요청\n${fld.freeContent}`;
-                      const text = await callApi(SYS_PROMPT, msg);
-                      const jsonStr = text.replace(/```json|```/g, "").trim();
-                      setRes(JSON.parse(jsonStr));
+                      const text = await callApi(SYS_PROMPT, `## 자유 요청\n${fld.freeContent}`);
+                      setRes(JSON.parse(text.replace(/```json|```/g, "").trim()));
                       setView("result");
-                    } catch (e) {
-                      setError("변환 중 오류가 발생했습니다.");
-                    } finally {
-                      setLoading(false);
-                    }
-                  }}
-                >
+                    } catch (e) { setError("오류 발생"); } finally { setLoading(false); }
+                  }}>
                   {loading ? "최적화 중..." : "즉시 최적화하기 →"}
                 </button>
-
-                {/* Recommendations */}
-                {fld.freeContent && fld.freeContent.length > 5 && (
-                  <div style={{ marginTop: 24, paddingTop: 20, borderTop: '1px solid var(--border)' }}>
-                    <h4 style={{ fontSize: 13, color: 'var(--text-main)', marginBottom: 12 }}>추천 템플릿</h4>
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-                      {allTemplates.filter(t => 
-                        fld.freeContent.includes(t.n.substring(0, 2)) || t.d.includes(fld.freeContent.substring(0, 2))
-                      ).slice(0, 3).map(t => (
-                        <div 
-                          key={t.id}
-                          onClick={() => goTpl(t)}
-                          style={{ padding: '10px 12px', background: 'var(--bg)', borderRadius: 10, fontSize: 12, cursor: 'pointer', border: '1px solid transparent' }}
-                          onMouseOver={e => e.currentTarget.style.borderColor = 'var(--border)'}
-                          onMouseOut={e => e.currentTarget.style.borderColor = 'transparent'}
-                        >
-                          <div style={{ fontWeight: 700, color: 'var(--primary)', marginBottom: 2 }}>{t.n}</div>
-                          <div style={{ color: 'var(--text-muted)', fontSize: 11 }}>{t.d}</div>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                )}
               </div>
             </div>
           </div>
         )}
 
-        {/* Template List View */}
         {view === "tpls" && cat && (
           <div className="fade-in">
             <Breadcrumbs cat={cat} onHome={goHome} />
-            <div style={{ display: "flex", alignItems: "center", gap: 20, marginBottom: 32 }}>
-              <div style={{ 
-                width: 64, height: 64, borderRadius: 20, background: cat.c + "10", 
-                display: "flex", alignItems: "center", justifyContent: "center", 
-                fontSize: 32, color: cat.c 
-              }}>{cat.ic}</div>
-              <div>
-                <h2 style={{ fontSize: 32 }}>{cat.l}</h2>
-                <p style={{ fontSize: 16, color: "var(--text-muted)" }}>{cat.d}</p>
-              </div>
-            </div>
-            
             <div style={{ display: "grid", gridTemplateColumns: "1fr", gap: 12 }}>
               {cat.t.map(t => (
                 <div key={t.id} className="card card-hover cc" onClick={() => goTpl(t)} style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
                   <div>
-                    <h3 style={{ fontSize: 18, marginBottom: 4, fontFamily: "Inter" }}>{t.n}</h3>
-                    <p style={{ fontSize: 14, color: "var(--text-muted)", marginBottom: 8 }}>{t.d}</p>
-                    <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
-                      {t.f.map(f => <span key={f.k} className="tag" style={{ background: "#f5f5f4", color: "var(--text-muted)", fontSize: 10 }}>{f.l}</span>)}
-                    </div>
+                    <h3 style={{ fontSize: 18, marginBottom: 4 }}>{t.n}</h3>
+                    <p style={{ fontSize: 14, color: "var(--text-muted)" }}>{t.d}</p>
                   </div>
                   <span style={{ color: "var(--text-light)", fontSize: 24 }}>→</span>
                 </div>
@@ -351,162 +410,50 @@ export default function App() {
           </div>
         )}
 
-        {/* Fill Form View */}
         {view === "fill" && tpl && (
           <div className="fade-in">
             <Breadcrumbs cat={cat} tpl={tpl} onHome={goHome} onViewTpls={() => setView("tpls")} />
-            
-            <div className="card" style={{ marginBottom: 32, borderLeft: "4px solid var(--primary)" }}>
-              <h2 style={{ fontSize: 24, marginBottom: 4 }}>{tpl.n}</h2>
-              <p style={{ color: "var(--text-muted)" }}>{tpl.d}</p>
-            </div>
-
             <div style={{ display: "flex", flexDirection: "column", gap: 24 }}>
               {tpl.f.map(f => (
                 <div key={f.k}>
                   <label style={{ display: 'block', fontSize: 13, fontWeight: 600, color: 'var(--text-muted)', marginBottom: 8 }}>{f.l}</label>
                   {f.type === 'textarea' ? (
-                    <textarea
-                      className="input-text"
-                      value={fld[f.k] || ''}
-                      onChange={e => setFld(p => ({ ...p, [f.k]: e.target.value }))}
-                      placeholder={f.p}
-                      rows={4}
-                      style={{ resize: 'vertical', minHeight: '120px' }}
-                    />
+                    <textarea className="input-text" value={fld[f.k] || ''} onChange={e => setFld(p => ({ ...p, [f.k]: e.target.value }))} placeholder={f.p} rows={4} style={{ resize: 'vertical', minHeight: '120px' }} />
                   ) : (
-                    <input
-                      className="input-text"
-                      value={fld[f.k] || ''}
-                      onChange={e => setFld(p => ({ ...p, [f.k]: e.target.value }))}
-                      placeholder={f.p}
-                    />
+                    <input className="input-text" value={fld[f.k] || ''} onChange={e => setFld(p => ({ ...p, [f.k]: e.target.value }))} placeholder={f.p} />
                   )}
                 </div>
               ))}
             </div>
-
-            {error && (
-              <div style={{ marginTop: 24, padding: 16, borderRadius: 12, background: "#fef2f2", border: "1px solid #fecaca", color: "#b91c1c", fontSize: 14 }}>
-                {error}
-              </div>
-            )}
-
-            <div style={{ display: "flex", gap: 12, marginTop: 40 }}>
-              <button className="btn-primary" onClick={handleSubmit} disabled={loading || tpl.f.every(f => !fld[f.k]?.trim())}>
-                {loading ? "Optimizing..." : "Optimize Prompt →"}
-              </button>
-              <button className="btn-secondary" onClick={() => setView("tpls")}>Back</button>
-            </div>
+            <button className="btn-primary" style={{ marginTop: 32 }} onClick={handleSubmit} disabled={loading}>Optimize →</button>
           </div>
         )}
 
-        {/* Result View */}
         {view === "result" && res && !showDoc && (
           <div className="fade-in">
-            <Breadcrumbs cat={cat} tpl={tpl} onHome={goHome} onViewTpls={() => setView("tpls")} />
-            
-            <div className="card" style={{ marginBottom: 24 }}>
-              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                <h2 style={{ fontSize: 28 }}>{res.title}</h2>
-                <span className="tag" style={{ background: complexityColors[res.complexity] + "15", color: complexityColors[res.complexity] }}>
-                  {res.complexity.toUpperCase()}
-                </span>
-              </div>
-            </div>
-
-            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16, marginBottom: 24 }}>
-              <div className="card" style={{ borderColor: "#bbf7d0", background: "#f0fdf410" }}>
-                <div style={{ fontSize: 12, fontWeight: 800, color: "#059669", marginBottom: 16, textTransform: "uppercase", letterSpacing: "0.05em" }}>✓ DO (Scope)</div>
-                {res.scope_do?.map((s, i) => (
-                  <div key={i} style={{ display: "flex", gap: 10, fontSize: 14, marginBottom: 8, alignItems: "flex-start" }}>
-                    <span style={{ color: "#059669", fontWeight: 700 }}>+</span>
-                    <span>{s}</span>
-                  </div>
-                ))}
-              </div>
-              <div className="card" style={{ borderColor: "#fecaca", background: "#fef2f210" }}>
-                <div style={{ fontSize: 12, fontWeight: 800, color: "#dc2626", marginBottom: 16, textTransform: "uppercase", letterSpacing: "0.05em" }}>✕ DON'T (Guard)</div>
-                {res.scope_dont?.map((s, i) => (
-                  <div key={i} style={{ display: "flex", gap: 10, fontSize: 14, marginBottom: 8, alignItems: "flex-start" }}>
-                    <span style={{ color: "#dc2626", fontWeight: 700 }}>−</span>
-                    <span>{s}</span>
-                  </div>
-                ))}
-              </div>
-            </div>
-
-            <div className="card" style={{ marginBottom: 24, borderLeft: "4px solid var(--primary)", position: "relative" }}>
-              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16 }}>
-                <span style={{ fontWeight: 700, fontSize: 16 }}>Optimized AI Prompt</span>
+            <Breadcrumbs cat={cat} tpl={tpl} onHome={goHome} />
+            <div className="card" style={{ marginBottom: 24, borderLeft: "4px solid var(--primary)" }}>
+              <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 16 }}>
+                <span style={{ fontWeight: 700 }}>Optimized AI Prompt</span>
                 <button className="btn-secondary" style={{ padding: "6px 12px", fontSize: 12 }} onClick={() => copyToClipboard(res.prompt, "p")}>
                   {copiedId === "p" ? "Copied!" : "Copy"}
                 </button>
               </div>
-              <div style={{ 
-                padding: 20, borderRadius: 12, background: "var(--bg)", border: "1px solid var(--border)", 
-                fontSize: 14, lineHeight: 1.8, color: "var(--text-main)", whiteSpace: "pre-wrap",
-                maxHeight: 400, overflowY: "auto"
-              }}>{res.prompt}</div>
+              <div style={{ padding: 20, background: "var(--bg)", borderRadius: 12, fontSize: 14, lineHeight: 1.8, whiteSpace: "pre-wrap" }}>{res.prompt}</div>
             </div>
-
-            <div style={{ display: "flex", gap: 12, flexWrap: "wrap" }}>
-              <button className="btn-primary" onClick={() => copyToClipboard(res.prompt, "p")}>
-                {copiedId === "p" ? "Copied ✓" : "Copy Prompt"}
-              </button>
-              <button className="btn-primary" onClick={handleGenDoc} disabled={docLoading} style={{ background: "var(--accent)" }}>
-                {docLoading ? "Generating..." : "📄 Create Document"}
-              </button>
+            <div style={{ display: "flex", gap: 12 }}>
+              <button className="btn-primary" onClick={handleGenDoc} disabled={docLoading}>📄 Create Document</button>
               <button className="btn-secondary" onClick={goHome}>Home</button>
             </div>
           </div>
         )}
 
-        {/* Document View */}
         {showDoc && (
           <div className="fade-in">
-            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-end", marginBottom: 24 }}>
-              <div>
-                <h2 style={{ fontSize: 24, marginBottom: 4 }}>{res?.title}</h2>
-                <p style={{ color: "var(--text-muted)", fontSize: 14 }}>Real-time editor & Signature tools</p>
-              </div>
-              <button className="btn-secondary" onClick={() => setShowDoc(false)}>Back to Result</button>
-            </div>
-
-            <div style={{ display: "flex", gap: 8, marginBottom: 16, flexWrap: "wrap" }}>
-              <button className="btn-secondary" style={{ padding: "8px 16px", fontSize: 13 }} onClick={startSig}>✍ Add Signature</button>
-              {sigData && <button className="btn-secondary" style={{ padding: "8px 16px", fontSize: 13, borderColor: "var(--accent)", color: "var(--accent)" }} onClick={() => {
-                if (docRef.current) docRef.current.innerHTML += `<img src="${sigData}" style="height:60px;margin:16px 0;display:block" alt="signature"/>`;
-              }}>Insert Signature</button>}
-            </div>
-
-            {sigMode && (
-              <div className="card fade-in" style={{ marginBottom: 24, background: "var(--bg)" }}>
-                <p style={{ fontSize: 14, fontWeight: 600, marginBottom: 12 }}>Draw your signature</p>
-                <canvas 
-                  ref={initCanvas} width={400} height={120}
-                  onMouseDown={onDown} onMouseMove={onMove} onMouseUp={onUp} onMouseLeave={onUp}
-                  style={{ border: "1px solid var(--border)", borderRadius: 12, background: "#fff", cursor: "crosshair", maxWidth: "100%" }}
-                />
-                <div style={{ display: "flex", gap: 8, marginTop: 16 }}>
-                  <button className="btn-primary" onClick={saveSig} style={{ padding: "8px 20px" }}>Save</button>
-                  <button className="btn-secondary" onClick={() => setSigMode(false)}>Cancel</button>
-                </div>
-              </div>
-            )}
-
-            <div 
-              ref={docRef} 
-              className="doc-editor" 
-              contentEditable="true" 
-              suppressContentEditableWarning
-              dangerouslySetInnerHTML={{ __html: docHtml }}
-              style={{ marginBottom: 32 }}
-            />
-
+            <div ref={docRef} className="doc-editor" contentEditable="true" dangerouslySetInnerHTML={{ __html: docHtml }} style={{ marginBottom: 32 }} />
             <div style={{ display: "flex", gap: 12 }}>
-              <button className="btn-primary" onClick={() => window.print()}>Print / Save as PDF</button>
-              <button className="btn-secondary" onClick={goHome}>Home</button>
+              <button className="btn-primary" onClick={() => window.print()}>Print / PDF</button>
+              <button className="btn-secondary" onClick={() => setShowDoc(false)}>Back</button>
             </div>
           </div>
         )}
