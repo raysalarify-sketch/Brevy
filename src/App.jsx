@@ -4,6 +4,7 @@ import { DIVS, SYS_PROMPT, SYS_DOC } from "./data/constants";
 import useClaude from "./hooks/useClaude";
 import Header from "./components/Header";
 import Breadcrumbs from "./components/Breadcrumbs";
+import Guide from "./components/Guide";
 
 export default function App() {
   const [view, setView] = useState("home");
@@ -288,15 +289,24 @@ export default function App() {
             <div style={{ display: "flex", flexDirection: "column", gap: 24 }}>
               {tpl.f.map(f => (
                 <div key={f.k}>
-                  <label style={{ fontSize: 14, fontWeight: 600, color: "var(--text-main)", marginBottom: 8, display: "block" }}>{f.l}</label>
-                  <textarea 
-                    className="input-text"
-                    value={fld[f.k] || ""} 
-                    onChange={e => setFld(p => ({ ...p, [f.k]: e.target.value }))} 
-                    placeholder={f.p} 
-                    rows={4}
-                    style={{ resize: "vertical" }}
-                  />
+                  <label style={{ display: 'block', fontSize: 13, fontWeight: 600, color: 'var(--text-muted)', marginBottom: 8 }}>{f.l}</label>
+                  {f.type === 'textarea' ? (
+                    <textarea
+                      className="input-text"
+                      value={fld[f.k] || ''}
+                      onChange={e => setFld(p => ({ ...p, [f.k]: e.target.value }))}
+                      placeholder={f.p}
+                      rows={4}
+                      style={{ resize: 'vertical', minHeight: '120px' }}
+                    />
+                  ) : (
+                    <input
+                      className="input-text"
+                      value={fld[f.k] || ''}
+                      onChange={e => setFld(p => ({ ...p, [f.k]: e.target.value }))}
+                      placeholder={f.p}
+                    />
+                  )}
                 </div>
               ))}
             </div>
@@ -430,6 +440,7 @@ export default function App() {
       <footer style={{ borderTop: "1px solid var(--border)", padding: "40px 24px", textAlign: "center", color: "var(--text-light)", fontSize: 12 }}>
         &copy; 2024 Brevy Prompt Studio. Crafted with precision for AI optimization.
       </footer>
+      <Guide />
     </div>
   );
 }

@@ -116,8 +116,15 @@ const P = [
   ] },
 ];
 
+const ETC = [
+  { id: "free", l: "자유 양식", ic: "✨", c: "#4f46e5", d: "정해진 틀 없이 자유롭게 작성", t: [
+    { id: "free1", n: "자유 작성", d: "모든 종류의 프롬프트 최적화", f: [{ k: "content", l: "요청 사항을 자유롭게 입력하세요", p: "예: 10대 아들을 위한 생일 편지 써줘", type: "textarea" }] },
+  ] },
+];
+
 export const DIVS = [
   { id: "office", label: "사무용", ic: "✎", cats: O },
   { id: "dev", label: "개발용", ic: "⌨", cats: DV },
   { id: "personal", label: "개인용", ic: "◉", cats: P },
+  { id: "etc", label: "기타", ic: "✨", cats: ETC },
 ];
