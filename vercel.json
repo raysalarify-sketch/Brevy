@@ -1,6 +1,0 @@
-{
-  "buildCommand": "cd brevy-project && npm run build",
-  "outputDirectory": "brevy-project/dist",
-  "installCommand": "cd brevy-project && npm install",
-  "framework": "vite"
-}
