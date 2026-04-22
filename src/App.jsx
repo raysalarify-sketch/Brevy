@@ -274,6 +274,13 @@ export default function App() {
     }
   };
 
+  const handleLogout = () => {
+    localStorage.removeItem('brevy_session_code');
+    setIsAuthorized(false);
+    setIsAdmin(false);
+    setRefCode('');
+  };
+
   if (!isAuthorized) {
     return (
       <div style={{ height: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%)', color: '#1e293b', fontFamily: 'Inter, sans-serif' }}>
@@ -378,6 +385,7 @@ export default function App() {
         templateCount={allTemplates.length} 
         onHome={goHome} 
         onAlerts={() => setView("alerts")}
+        onLogout={handleLogout}
       />
       
       {(loading || docLoading) && (

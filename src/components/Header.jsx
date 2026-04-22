@@ -1,6 +1,6 @@
 import React from 'react';
 
-const Header = ({ templateCount, onHome, onAlerts }) => {
+const Header = ({ templateCount, onHome, onAlerts, onLogout }) => {
   return (
     <header className="glass-header" style={{
       position: 'sticky',
@@ -62,9 +62,33 @@ const Header = ({ templateCount, onHome, onAlerts }) => {
           onMouseOver={(e) => e.target.style.color = 'var(--primary)'}
           onMouseOut={(e) => e.target.style.color = 'var(--text-muted)'}
         >Alert Center</button>
+        <button 
+          onClick={onLogout} 
+          style={{ 
+            padding: '6px 12px',
+            borderRadius: '6px',
+            border: '1px solid var(--border)',
+            background: 'white',
+            fontSize: 12, 
+            fontWeight: 600, 
+            color: 'var(--text-muted)', 
+            cursor: 'pointer',
+            transition: '0.2s'
+          }}
+          onMouseOver={(e) => {
+            e.target.style.background = '#fef2f2';
+            e.target.style.color = '#dc2626';
+            e.target.style.borderColor = '#fecaca';
+          }}
+          onMouseOut={(e) => {
+            e.target.style.background = 'white';
+            e.target.style.color = 'var(--text-muted)';
+            e.target.style.borderColor = 'var(--border)';
+          }}
+        >Logout 🚪</button>
       </div>
 
-      <div style={{ fontSize: 12, color: 'var(--text-muted)', fontWeight: 500 }}>
+      <div className="mobile-hide" style={{ fontSize: 12, color: 'var(--text-muted)', fontWeight: 500 }}>
         <span style={{ color: 'var(--primary)', fontWeight: 700 }}>{templateCount}</span> templates
       </div>
     </header>
