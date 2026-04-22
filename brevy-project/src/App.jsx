@@ -41,18 +41,41 @@ export default function App() {
   const { callApi } = useClaude();
 
   useEffect(() => {
-    const auth = localStorage.getItem('brevy_auth');
-    const adminAuth = localStorage.getItem('brevy_admin');
-    
-    if (adminAuth === 'true') {
-      setIsAuthorized(true);
-      setIsAdmin(true);
-    } else if (auth === 'true') {
-      setIsAuthorized(true);
-    }
-    
-    const onboard = localStorage.getItem('brevy_onboard');
-    if (onboard !== 'seen' && auth === 'true') setShowOnboarding(true);
+    const checkSession = async () => {
+      const storedCode = localStorage.getItem('brevy_session_code');
+      if (!storedCode) return;
+
+      // 1. 관리자 코드는 즉시 통과
+      if (storedCode === 'ADMIN-BREVY' || storedCode === 'BREVY-AI') {
+        setIsAuthorized(true);
+        setIsAdmin(storedCode === 'ADMIN-BREVY');
+        return;
+      }
+
+      // 2. 게스트 코드는 데이터베이스의 최신 코드와 일치하는지 확인
+      try {
+        const { data, error } = await supabase
+          .from('access_codes')
+          .select('code, is_admin')
+          .order('created_at', { ascending: false })
+          .limit(1)
+          .single();
+
+        if (!error && data && data.code === storedCode) {
+          setIsAuthorized(true);
+          setIsAdmin(data.is_admin);
+        } else {
+          // 코드가 만료되었거나 일치하지 않으면 세션 파기
+          localStorage.removeItem('brevy_session_code');
+          setIsAuthorized(false);
+          setIsAdmin(false);
+        }
+      } catch (err) {
+        console.error('Session Re-validation Error:', err);
+      }
+    };
+
+    checkSession();
   }, []);
 
   const addLog = (code, success) => {
