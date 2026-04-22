@@ -131,25 +131,50 @@ const AdminDashboard = ({ onExit }) => {
         </div>
 
         <div>
-          <div className="card sticky-side" style={{ border: '2px solid var(--primary)' }}>
-            <h3 style={{ fontSize: '18px', marginBottom: '20px', borderBottom: '1px solid var(--border)', paddingBottom: '12px' }}>Code Management</h3>
-            <div style={{ marginBottom: '20px' }}>
-              <label style={{ fontSize: '12px', fontWeight: 600, display: 'block', marginBottom: '8px' }}>ADD NEW CODE</label>
-              <input 
-                className="input-text" 
-                placeholder="Ex: SPECIAL-2024" 
-                value={newCode}
-                onChange={e => setNewCode(e.target.value)}
-                style={{ marginBottom: '12px', height: '48px' }}
-              />
-              <button className="btn-primary" style={{ width: '100%', justifyContent: 'center', height: '48px' }} onClick={createCode}>
-                발급 및 등록
-              </button>
+            <div className="card sticky-side" style={{ border: '2px solid var(--primary)' }}>
+              <h3 style={{ fontSize: '18px', marginBottom: '20px', borderBottom: '1px solid var(--border)', paddingBottom: '12px' }}>Code Management</h3>
+              <div style={{ marginBottom: '20px' }}>
+                <label style={{ fontSize: '12px', fontWeight: 600, display: 'block', marginBottom: '8px' }}>ADD NEW CODE</label>
+                <input 
+                  className="input-text" 
+                  placeholder="Ex: SPECIAL-2024" 
+                  value={newCode}
+                  onChange={e => setNewCode(e.target.value)}
+                  style={{ marginBottom: '12px', height: '48px' }}
+                />
+                <button className="btn-primary" style={{ width: '100%', justifyContent: 'center', height: '48px' }} onClick={createCode}>
+                  발급 및 등록
+                </button>
+              </div>
+
+              <div style={{ marginTop: '24px' }}>
+                <label style={{ fontSize: '12px', fontWeight: 600, display: 'block', marginBottom: '12px', color: 'var(--text-muted)' }}>RECENT CODES</label>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                  {[...accessCodes].sort((a, b) => new Date(b.created_at) - new Date(a.created_at)).map((c, idx) => (
+                    <div key={c.id} style={{ 
+                      padding: '12px', 
+                      borderRadius: '8px', 
+                      background: idx === 0 ? 'rgba(16, 185, 129, 0.1)' : 'var(--bg)',
+                      border: idx === 0 ? '1px solid #10b981' : '1px solid var(--border)',
+                      display: 'flex',
+                      justifyContent: 'space-between',
+                      alignItems: 'center'
+                    }}>
+                      <div>
+                        <div style={{ fontWeight: 700, fontSize: '14px', color: idx === 0 ? '#059669' : 'inherit' }}>{c.code}</div>
+                        <div style={{ fontSize: '10px', color: 'var(--text-muted)' }}>{new Date(c.created_at).toLocaleString()}</div>
+                      </div>
+                      {idx === 0 && <span style={{ fontSize: '10px', background: '#10b981', color: 'white', padding: '2px 6px', borderRadius: '4px', fontWeight: 700 }}>ACTIVE</span>}
+                      {idx > 0 && <span style={{ fontSize: '10px', color: 'var(--text-muted)' }}>EXPIRED</span>}
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              <div style={{ fontSize: '11px', color: 'var(--text-muted)', background: 'var(--bg)', padding: '12px', borderRadius: '8px', marginTop: '20px' }}>
+                <strong>Admin Tip:</strong> 가장 위에 있는 [ACTIVE] 코드만 실제 입장이 가능하도록 설정되어 있습니다. 새 코드를 발급하면 이전 코드는 자동으로 만료됩니다.
+              </div>
             </div>
-            <div style={{ fontSize: '11px', color: 'var(--text-muted)', background: 'var(--bg)', padding: '12px', borderRadius: '8px' }}>
-              <strong>Admin Tip:</strong> 여기서 발급한 코드는 즉시 클라우드 DB에 반영되어 사용자가 바로 사용할 수 있습니다.
-            </div>
-          </div>
         </div>
       </div>
     </div>

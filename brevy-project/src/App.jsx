@@ -210,14 +210,15 @@ export default function App() {
     }
     
     try {
-      // 2. 그 외의 경우 Supabase에서 코드 확인
+      // 2. 가장 최근에 생성된 코드 단 하나만 허용 (Exclusive Access)
       const { data: codeData, error } = await supabase
         .from('access_codes')
         .select('*')
-        .eq('code', upperCode)
+        .order('created_at', { ascending: false })
+        .limit(1)
         .single();
 
-      if (codeData) {
+      if (codeData && codeData.code === upperCode) {
         setIsAuthorized(true);
         setIsAdmin(codeData.is_admin);
         localStorage.setItem('brevy_session_code', upperCode);
@@ -225,7 +226,7 @@ export default function App() {
         // 접속 로그 기록
         await supabase.from('access_logs').insert({ code: upperCode, success: true });
         
-        alert(`${codeData.user_name}님, 환영합니다!`);
+        alert(`${codeData.user_name || '사용자'}님, 환영합니다!`);
       } else {
         await supabase.from('access_logs').insert({ code: upperCode, success: false });
         alert('유효하지 않은 코드입니다. 다시 확인해 주세요.');
