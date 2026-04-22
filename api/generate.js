@@ -1,4 +1,4 @@
-// Vercel Serverless Function for Google Gemini API Proxy (Antigravity Engine)
+// Vercel Serverless Function for Google Gemini API Proxy (Antigravity Engine) - SAFE MODE
 export default async function handler(req, res) {
   if (req.method !== 'POST') {
     return res.status(405).json({ error: 'Method not allowed' });
@@ -11,13 +11,20 @@ export default async function handler(req, res) {
     return res.status(500).json({ error: 'Server configuration error: Gemini API Key missing' });
   }
 
-  // Convert messages to Gemini format (using CamelCase for REST API as per latest specs)
-  const contents = messages.map(msg => ({
+  // SAFE MODE: Combine system prompt with the first message to ensure 100% compatibility across all API versions
+  const combinedMessages = [...messages];
+  if (system && combinedMessages.length > 0 && combinedMessages[0].role === 'user') {
+    combinedMessages[0].content = `[SYSTEM INSTRUCTION]\n${system}\n\n[USER REQUEST]\n${combinedMessages[0].content}`;
+  }
+
+  // Convert to Gemini format
+  const contents = combinedMessages.map(msg => ({
     role: msg.role === 'assistant' ? 'model' : 'user',
     parts: [{ text: msg.content }]
   }));
 
-  const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`;
+  // Use stable v1 API
+  const url = `https://generativelanguage.googleapis.com/v1/models/gemini-1.5-flash:generateContent?key=${apiKey}`;
 
   try {
     const response = await fetch(url, {
@@ -26,16 +33,14 @@ export default async function handler(req, res) {
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
-        systemInstruction: {
-          parts: [{ text: system }]
-        },
         contents: contents,
         generationConfig: {
           temperature: 0.7,
           topK: 40,
           topP: 0.95,
           maxOutputTokens: 2000,
-          responseMimeType: system.includes("JSON") ? "application/json" : "text/plain"
+          // Remove response_mime_type if it causes issues in v1, 
+          // Gemini 1.5 Flash is good at following JSON instructions in text
         }
       })
     });
