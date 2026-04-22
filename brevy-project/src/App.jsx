@@ -139,7 +139,11 @@ export default function App() {
     
     try {
       const text = await callApi(SYS_PROMPT, msg);
-      const jsonStr = text.replace(/```json|```/g, "").trim();
+      // JSON 추출 로직 강화: { 로 시작해서 } 로 끝나는 부분만 찾아냄
+      const jsonMatch = text.match(/\{[\s\S]*\}/);
+      if (!jsonMatch) throw new Error("결과 데이터 형식이 올바르지 않습니다.");
+      
+      const jsonStr = jsonMatch[0].trim();
       const parsedRes = JSON.parse(jsonStr);
       setRes(parsedRes);
       setView("result");
