@@ -5,6 +5,7 @@ import useClaude from "./hooks/useClaude";
 import Header from "./components/Header";
 import Breadcrumbs from "./components/Breadcrumbs";
 import Guide from "./components/Guide";
+import AlertCenter from "./components/AlertCenter";
 
 export default function App() {
   const [view, setView] = useState("home");
@@ -162,6 +163,8 @@ export default function App() {
       <main style={{ maxWidth: 900, margin: "0 auto", padding: "40px 24px" }}>
         
         {/* Home View */}
+        {view === "alerts" && <AlertCenter />}
+        
         {view === "home" && (
           <div className="fade-in">
             <div style={{ textAlign: "center", marginBottom: 48 }}>

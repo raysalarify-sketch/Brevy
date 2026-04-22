@@ -36,6 +36,34 @@ const Header = ({ templateCount, onHome }) => {
         </div>
         <h1 className="text-2xl font-serif tracking-tight text-primary m-0" style={{ fontSize: 24, fontWeight: 700, fontFamily: 'DM Serif Display', margin: 0 }}>Brevy</h1>
       </div>
+      <div style={{ display: 'flex', gap: 24, alignItems: 'center' }}>
+        <button 
+          onClick={onHome} 
+          style={{ 
+            background: 'none', 
+            border: 'none', 
+            fontSize: 14, 
+            fontWeight: 600, 
+            color: 'var(--text-main)', 
+            cursor: 'pointer',
+            opacity: 1
+          }}
+        >Prompt Studio</button>
+        <button 
+          onClick={onAlerts} 
+          style={{ 
+            background: 'none', 
+            border: 'none', 
+            fontSize: 14, 
+            fontWeight: 600, 
+            color: 'var(--text-muted)', 
+            cursor: 'pointer',
+            transition: 'var(--transition)'
+          }}
+          onMouseOver={(e) => e.target.style.color = 'var(--primary)'}
+          onMouseOut={(e) => e.target.style.color = 'var(--text-muted)'}
+        >Alert Center</button>
+      </div>
       <div style={{ fontSize: 12, color: 'var(--text-muted)', fontWeight: 500 }}>
         <span style={{ color: 'var(--primary)', fontWeight: 700 }}>{templateCount}</span> templates available
       </div>
