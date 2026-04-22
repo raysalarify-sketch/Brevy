@@ -166,87 +166,155 @@ export default function App() {
 
       <main style={{ maxWidth: 900, margin: "0 auto", padding: "40px 24px" }}>
         
-        {/* Home View */}
         {view === "alerts" && <AlertCenter />}
         
         {view === "home" && (
           <div className="fade-in">
             <div style={{ textAlign: "center", marginBottom: 48 }}>
-              <h2 style={{ fontSize: 42, marginBottom: 16 }}>Brevy Prompt Studio</h2>
-              <p style={{ fontSize: 18, color: "var(--text-muted)", maxWidth: 600, margin: "0 auto" }}>
-                업무 요구사항을 AI가 즉시 실행할 수 있는 고품질 프롬프트와 문서로 변환하세요.
-              </p>
+              <h2 className="serif" style={{ fontSize: "2.5rem", marginBottom: 12 }}>어떤 업무를 도와드릴까요?</h2>
+              <p style={{ color: "var(--text-muted)", fontSize: 18 }}>카테고리를 선택하거나, 우측에 바로 요청하세요.</p>
             </div>
 
-            <div style={{ position: "relative", marginBottom: 40 }}>
-              <input 
-                className="input-text"
-                style={{ paddingLeft: 48, height: 56, fontSize: 16, borderRadius: 16 }}
-                value={searchQuery}
-                onChange={e => setSearchQuery(e.target.value)}
-                placeholder="어떤 작업이 필요하신가요? (예: 계약서, 이메일, 버그 수정...)"
-              />
-              <span style={{ position: "absolute", left: 18, top: "50%", transform: "translateY(-50%)", fontSize: 20, color: "var(--text-light)" }}>⌕</span>
-            </div>
-
-            {searchQuery.trim() ? (
-              <div className="fade-in">
-                <p style={{ fontSize: 14, color: "var(--text-light)", marginBottom: 16 }}>{filteredTemplates.length} templates found</p>
-                <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(280px, 1fr))", gap: 16 }}>
-                  {filteredTemplates.map(t => (
-                    <div key={t.id} className="card card-hover cc" onClick={() => {
-                      setDivId(t.dvId);
-                      setCat(DIVS.find(d => d.id === t.dvId).cats.find(c => c.id === t.cId));
-                      goTpl(t);
-                    }}>
-                      <div style={{ display: "flex", gap: 8, marginBottom: 12 }}>
-                        <span className="tag" style={{ background: "#f5f5f4", color: "#57534e" }}>{t.dvL}</span>
-                        <span className="tag" style={{ background: t.cC + "15", color: t.cC }}>{t.cI} {t.cL}</span>
-                      </div>
-                      <h3 style={{ fontSize: 18, marginBottom: 4, fontFamily: "Inter" }}>{t.n}</h3>
-                      <p style={{ fontSize: 14, color: "var(--text-muted)" }}>{t.d}</p>
-                    </div>
-                  ))}
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 360px', gap: 32, alignItems: 'start' }}>
+              {/* Left: Search & Categories */}
+              <div>
+                <div style={{ position: "relative", marginBottom: 32 }}>
+                  <input 
+                    className="input-text"
+                    style={{ paddingLeft: 48, height: 56, fontSize: 16, borderRadius: 16, boxShadow: "var(--shadow-sm)" }}
+                    placeholder="템플릿 검색 (예: 보고서, 이메일, 코드...)"
+                    value={searchQuery}
+                    onChange={e => setSearchQuery(e.target.value)}
+                  />
+                  <span style={{ position: "absolute", left: 18, top: "50%", transform: "translateY(-50%)", fontSize: 20, color: "var(--text-light)" }}>⌕</span>
                 </div>
+
+                {searchQuery.trim() ? (
+                  <div className="fade-in">
+                    <p style={{ fontSize: 14, color: "var(--text-light)", marginBottom: 16 }}>{filteredTemplates.length} templates found</p>
+                    <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(240px, 1fr))", gap: 16 }}>
+                      {filteredTemplates.map(t => (
+                        <div key={t.id} className="card card-hover cc" onClick={() => {
+                          setDivId(t.dvId);
+                          setCat(DIVS.find(d => d.id === t.dvId).cats.find(c => c.id === t.cId));
+                          goTpl(t);
+                        }}>
+                          <div style={{ display: "flex", gap: 8, marginBottom: 12 }}>
+                            <span className="tag" style={{ background: "#f5f5f4", color: "#57534e" }}>{t.dvL}</span>
+                            <span className="tag" style={{ background: t.cC + "15", color: t.cC }}>{t.cI} {t.cL}</span>
+                          </div>
+                          <h3 style={{ fontSize: 16, marginBottom: 4 }}>{t.n}</h3>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                ) : (
+                  <>
+                    <div style={{ display: "flex", gap: 10, marginBottom: 24, overflowX: "auto", paddingBottom: 8 }}>
+                      {DIVS.map(dv => (
+                        <button 
+                          key={dv.id} 
+                          className={`btn-secondary ${divId === dv.id ? 'active' : ''}`}
+                          onClick={() => setDivId(dv.id)}
+                          style={{ 
+                            flex: 1, 
+                            padding: '8px 16px',
+                            whiteSpace: "nowrap",
+                            borderColor: divId === dv.id ? "var(--primary)" : "var(--border)",
+                            background: divId === dv.id ? "var(--primary)" : "#fff",
+                            color: divId === dv.id ? "#fff" : "var(--text-main)"
+                          }}
+                        >
+                          {dv.label}
+                        </button>
+                      ))}
+                    </div>
+                    
+                    <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(180px, 1fr))", gap: 16 }}>
+                      {curDiv.cats.map(c => (
+                        <div key={c.id} className="card card-hover cc" onClick={() => goCat(c)} style={{ textAlign: "center", padding: "24px 16px" }}>
+                          <div style={{ 
+                            width: 48, height: 48, borderRadius: 12, background: c.c + "10", 
+                            display: "flex", alignItems: "center", justifyContent: "center", 
+                            margin: "0 auto 12px", fontSize: 24, color: c.c 
+                          }}>{c.ic}</div>
+                          <h4 style={{ fontSize: 14, marginBottom: 4 }}>{c.l}</h4>
+                          <div style={{ fontSize: 10, color: c.c, fontWeight: 700 }}>{c.t.length} ITEMS</div>
+                        </div>
+                      ))}
+                    </div>
+                  </>
+                )}
               </div>
-            ) : (
-              <>
-                <div style={{ display: "flex", gap: 12, marginBottom: 32, overflowX: "auto", paddingBottom: 8 }}>
-                  {DIVS.map(dv => (
-                    <button 
-                      key={dv.id} 
-                      className={`btn-secondary ${divId === dv.id ? 'active' : ''}`}
-                      onClick={() => setDivId(dv.id)}
-                      style={{ 
-                        flex: 1, 
-                        whiteSpace: "nowrap",
-                        borderColor: divId === dv.id ? "var(--primary)" : "var(--border)",
-                        background: divId === dv.id ? "var(--primary)" : "#fff",
-                        color: divId === dv.id ? "#fff" : "var(--text-main)"
-                      }}
-                    >
-                      <span style={{ marginRight: 8 }}>{dv.ic}</span>
-                      {dv.label}
-                    </button>
-                  ))}
+
+              {/* Right: Quick Free Form */}
+              <div className="card" style={{ position: 'sticky', top: 100, border: '1px solid var(--primary)', background: '#fff' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 16 }}>
+                  <span style={{ fontSize: 20 }}>✨</span>
+                  <h3 style={{ fontSize: 18, margin: 0 }}>자유 양식 퀵 프롬프트</h3>
                 </div>
+                <p style={{ fontSize: 13, color: 'var(--text-muted)', marginBottom: 20 }}>템플릿 없이 바로 요청 사항을 입력하세요.</p>
                 
-                <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(200px, 1fr))", gap: 16 }}>
-                  {curDiv.cats.map(c => (
-                    <div key={c.id} className="card card-hover cc" onClick={() => goCat(c)} style={{ textAlign: "center", padding: "32px 24px" }}>
-                      <div style={{ 
-                        width: 56, height: 56, borderRadius: 16, background: c.c + "10", 
-                        display: "flex", alignItems: "center", justifyContent: "center", 
-                        margin: "0 auto 16px", fontSize: 28, color: c.c 
-                      }}>{c.ic}</div>
-                      <h3 style={{ fontSize: 16, marginBottom: 6, fontFamily: "Inter" }}>{c.l}</h3>
-                      <p style={{ fontSize: 13, color: "var(--text-muted)", lineHeight: 1.5 }}>{c.d}</p>
-                      <div style={{ marginTop: 12, fontSize: 11, color: c.c, fontWeight: 700 }}>{c.t.length} TEMPLATES</div>
+                <textarea 
+                  className="input-text"
+                  placeholder="예: 3년차 마케터를 위한 이직용 자기소개서 초안을 작성해줘"
+                  rows={6}
+                  style={{ marginBottom: 16, resize: 'none', fontSize: 14 }}
+                  value={fld.freeContent || ""}
+                  onChange={e => setFld({...fld, freeContent: e.target.value})}
+                />
+
+                <button 
+                  className="btn-primary" 
+                  style={{ width: '100%', justifyContent: 'center', padding: '14px' }}
+                  disabled={!fld.freeContent || loading}
+                  onClick={async () => {
+                    const quickTpl = { id: 'free', n: '자유 작성', prompt: SYS_PROMPT, f: [{ k: 'content', l: '요청 사항' }] };
+                    setTpl(quickTpl);
+                    setFld({ content: fld.freeContent });
+                    
+                    // Manually trigger handleSubit with simulated flow
+                    setLoading(true); setError(""); setRes(null);
+                    try {
+                      const msg = `## 자유 요청\n${fld.freeContent}`;
+                      const text = await callApi(SYS_PROMPT, msg);
+                      const jsonStr = text.replace(/```json|```/g, "").trim();
+                      setRes(JSON.parse(jsonStr));
+                      setView("result");
+                    } catch (e) {
+                      setError("변환 중 오류가 발생했습니다.");
+                    } finally {
+                      setLoading(false);
+                    }
+                  }}
+                >
+                  {loading ? "최적화 중..." : "즉시 최적화하기 →"}
+                </button>
+
+                {/* Recommendations */}
+                {fld.freeContent && fld.freeContent.length > 5 && (
+                  <div style={{ marginTop: 24, paddingTop: 20, borderTop: '1px solid var(--border)' }}>
+                    <h4 style={{ fontSize: 13, color: 'var(--text-main)', marginBottom: 12 }}>추천 템플릿</h4>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                      {allTemplates.filter(t => 
+                        fld.freeContent.includes(t.n.substring(0, 2)) || t.d.includes(fld.freeContent.substring(0, 2))
+                      ).slice(0, 3).map(t => (
+                        <div 
+                          key={t.id}
+                          onClick={() => goTpl(t)}
+                          style={{ padding: '10px 12px', background: 'var(--bg)', borderRadius: 10, fontSize: 12, cursor: 'pointer', border: '1px solid transparent' }}
+                          onMouseOver={e => e.currentTarget.style.borderColor = 'var(--border)'}
+                          onMouseOut={e => e.currentTarget.style.borderColor = 'transparent'}
+                        >
+                          <div style={{ fontWeight: 700, color: 'var(--primary)', marginBottom: 2 }}>{t.n}</div>
+                          <div style={{ color: 'var(--text-muted)', fontSize: 11 }}>{t.d}</div>
+                        </div>
+                      ))}
                     </div>
-                  ))}
-                </div>
-              </>
-            )}
+                  </div>
+                )}
+              </div>
+            </div>
           </div>
         )}
 
