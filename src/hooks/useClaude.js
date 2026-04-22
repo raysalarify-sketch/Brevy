@@ -2,7 +2,7 @@ import { useCallback } from "react";
 
 const useClaude = () => {
   const callApi = useCallback(async (system, msg) => {
-    const r = await fetch("/api/generate", {
+    const r = await fetch("/api/chat", {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
