@@ -61,25 +61,6 @@ export default function App() {
     localStorage.setItem('brevy_access_logs', JSON.stringify(logs));
   };
 
-  const handleAuthorize = () => {
-    const upperCode = refCode.toUpperCase();
-    const currentRefCode = localStorage.getItem('brevy_ref_code') || 'BREVY-AI';
-
-    if (upperCode === 'ADMIN-BREVY') {
-      setIsAuthorized(true);
-      setIsAdmin(true);
-      localStorage.setItem('brevy_admin', 'true');
-      addLog(upperCode, true);
-    } else if (upperCode === currentRefCode || refCode === '1234') {
-      setIsAuthorized(true);
-      localStorage.setItem('brevy_auth', 'true');
-      setShowOnboarding(true);
-      addLog(upperCode, true);
-    } else {
-      addLog(upperCode, false);
-      alert('유효하지 않은 추천인 코드입니다.');
-    }
-  };
 
   const handleAdminExit = () => {
     setIsAdmin(false);
