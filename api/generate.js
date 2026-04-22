@@ -11,13 +11,13 @@ export default async function handler(req, res) {
     return res.status(500).json({ error: 'Server configuration error: Gemini API Key missing' });
   }
 
-  // Convert messages to Gemini format
+  // Convert messages to Gemini format (using snake_case for REST API)
   const contents = messages.map(msg => ({
     role: msg.role === 'assistant' ? 'model' : 'user',
     parts: [{ text: msg.content }]
   }));
 
-  const url = `https://generativelanguage.googleapis.com/v1/models/gemini-1.5-flash-latest:generateContent?key=${apiKey}`;
+  const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`;
 
   try {
     const response = await fetch(url, {
@@ -30,25 +30,25 @@ export default async function handler(req, res) {
           parts: [{ text: system }]
         },
         contents: contents,
-        generationConfig: {
+        generation_config: {
           temperature: 0.7,
-          topK: 40,
-          topP: 0.95,
-          maxOutputTokens: 2000,
-          responseMimeType: system.includes("JSON") ? "application/json" : "text/plain"
+          top_k: 40,
+          top_p: 0.95,
+          max_output_tokens: 2000,
+          response_mime_type: system.includes("JSON") ? "application/json" : "text/plain"
         }
       })
     });
 
     if (!response.ok) {
       const errorData = await response.json();
+      console.error('Gemini API Error:', errorData);
       return res.status(response.status).json(errorData);
     }
 
     const data = await response.json();
     const text = data.candidates?.[0]?.content?.parts?.[0]?.text || "";
     
-    // Return in a format similar to what the frontend expects
     return res.status(200).json({
       content: [{ text: text }]
     });
