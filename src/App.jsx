@@ -216,28 +216,50 @@ export default function App() {
 
   if (!isAuthorized) {
     return (
-      <div style={{ height: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', background: '#09090b', color: '#fff', fontFamily: 'Inter, sans-serif' }}>
-        <div className="fade-in" style={{ width: '100%', maxWidth: '400px', padding: '40px', textAlign: 'center' }}>
-          <div style={{ width: 64, height: 64, background: 'var(--accent)', borderRadius: 20, margin: '0 auto 24px', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 32 }}>✨</div>
-          <h1 className="serif" style={{ fontSize: '2.5rem', marginBottom: '12px' }}>Brevy Studio</h1>
-          <p style={{ color: '#a1a1aa', marginBottom: '40px', fontSize: '15px' }}>본 플랫폼은 초대된 사용자만 입장 가능합니다.</p>
+      <div style={{ height: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%)', color: '#1e293b', fontFamily: 'Inter, sans-serif' }}>
+        <div className="fade-in card" style={{ width: '100%', maxWidth: '440px', padding: '48px', textAlign: 'center', background: 'rgba(255, 255, 255, 0.8)', backdropFilter: 'blur(20px)', border: '1px solid rgba(255, 255, 255, 0.5)', borderRadius: '32px', boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.1)' }}>
+          <div style={{ width: 64, height: 64, background: 'var(--primary)', borderRadius: 20, margin: '0 auto 24px', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 32, boxShadow: '0 10px 20px rgba(0,0,0,0.1)' }}>
+            <svg width="32" height="32" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <path d="M12 2L4 7V17L12 22L20 17V7L12 2Z" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+            </svg>
+          </div>
+          <h1 className="serif" style={{ fontSize: '2.75rem', marginBottom: '12px', color: 'var(--text-main)' }}>Brevy Studio</h1>
+          <p style={{ color: 'var(--text-muted)', marginBottom: '40px', fontSize: '16px', lineHeight: 1.6 }}>초대된 분들만을 위한 프롬프트 최적화 공간입니다.</p>
           
           <div style={{ textAlign: 'left', marginBottom: '24px' }}>
-            <label style={{ fontSize: '12px', fontWeight: 700, color: '#71717a', textTransform: 'uppercase', marginBottom: '8px', display: 'block' }}>Referral Code</label>
+            <label style={{ fontSize: '13px', fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase', marginBottom: '10px', display: 'block', letterSpacing: '0.05em' }}>Referral Code</label>
             <input 
               className="input-text" 
               type="text" 
-              placeholder="코드를 입력하세요" 
+              placeholder="코드를 입력해 주세요" 
               value={refCode}
               onChange={e => setRefCode(e.target.value)}
               onKeyDown={e => e.key === 'Enter' && handleAuthorize()}
-              style={{ background: '#18181b', border: '1px solid #27272a', color: '#fff', height: '52px' }}
+              style={{ background: '#fff', border: '1px solid var(--border)', color: 'var(--text-main)', height: '56px', fontSize: '16px', borderRadius: '16px' }}
             />
           </div>
 
-          <button className="btn-primary" onClick={handleAuthorize} style={{ width: '100%', height: '52px', justifyContent: 'center', background: '#fff', color: '#000' }}>
+          <button className="btn-primary" onClick={handleAuthorize} style={{ width: '100%', height: '56px', justifyContent: 'center', borderRadius: '16px', fontSize: '16px', marginBottom: '24px', boxShadow: '0 4px 12px rgba(0,0,0,0.1)' }}>
             입장하기
           </button>
+
+          <div style={{ paddingTop: '24px', borderTop: '1px solid var(--border)' }}>
+            <p style={{ fontSize: '14px', color: 'var(--text-muted)', marginBottom: '12px' }}>추천인 코드가 없으신가요?</p>
+            <a 
+              href="mailto:ikhyeon.yu@salarify.kr?subject=Brevy 입장 코드 요청&body=안녕하세요, Brevy Prompt Studio 입장 코드를 요청드립니다."
+              style={{ 
+                display: 'inline-flex', 
+                alignItems: 'center', 
+                gap: '8px',
+                color: 'var(--primary)', 
+                fontWeight: 700, 
+                textDecoration: 'none',
+                fontSize: '15px'
+              }}
+            >
+              입장 요청 메일 보내기 ✉️
+            </a>
+          </div>
         </div>
       </div>
     );
