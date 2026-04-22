@@ -5,10 +5,11 @@ const supabaseUrl = (import.meta.env.VITE_SUPABASE_URL || '').trim();
 const supabaseAnonKey = (import.meta.env.VITE_SUPABASE_ANON_KEY || '').trim();
 
 if (!supabaseUrl || !supabaseAnonKey) {
+  const foundKeys = Object.keys(import.meta.env).filter(k => k.startsWith('VITE_'));
   console.error('Supabase Config Missing! Debug Info:', {
     urlLength: supabaseUrl.length,
     keyLength: supabaseAnonKey.length,
-    envKeys: Object.keys(import.meta.env).filter(k => k.startsWith('VITE_'))
+    foundViteKeys: foundKeys
   });
   console.warn('Database features will be disabled.');
 }
