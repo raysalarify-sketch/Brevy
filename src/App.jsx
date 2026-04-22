@@ -196,7 +196,7 @@ export default function App() {
   const [showRequestForm, setShowRequestForm] = useState(false);
   const [requestData, setRequestData] = useState({ email: '', name: '', content: '' });
 
-  const handleAuthorize = async () => {
+  const handleAccessAuthorize = async () => {
     if (!refCode) return alert('추천인 코드를 입력해 주세요.');
     
     try {
@@ -286,12 +286,12 @@ export default function App() {
                   placeholder="코드를 입력해 주세요" 
                   value={refCode}
                   onChange={e => setRefCode(e.target.value)}
-                  onKeyDown={e => e.key === 'Enter' && handleAuthorize()}
+                  onKeyDown={e => e.key === 'Enter' && handleAccessAuthorize()}
                   style={{ background: '#fff', border: '1px solid var(--border)', color: 'var(--text-main)', height: '56px', fontSize: '16px', borderRadius: '16px' }}
                 />
               </div>
 
-              <button className="btn-primary" onClick={handleAuthorize} style={{ width: '100%', height: '56px', justifyContent: 'center', borderRadius: '16px', fontSize: '16px', marginBottom: '24px' }}>
+              <button className="btn-primary" onClick={handleAccessAuthorize} style={{ width: '100%', height: '56px', justifyContent: 'center', borderRadius: '16px', fontSize: '16px', marginBottom: '24px' }}>
                 입장하기
               </button>
 
