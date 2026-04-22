@@ -50,7 +50,7 @@ const AdminDashboard = ({ onExit }) => {
     try {
       const { error } = await supabase
         .from('access_codes')
-        .insert({ code: code, user_name: 'New User', is_admin: false });
+        .upsert({ code: code, user_name: 'Admin User', created_at: new Date().toISOString() }, { onConflict: 'code' });
       
       if (error) throw error;
       
