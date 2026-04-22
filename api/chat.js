@@ -1,4 +1,5 @@
-// Vercel Serverless Function for Google Gemini API Proxy (Antigravity Engine) - SAFE MODE
+import { GoogleGenerativeAI } from "@google/generative-ai";
+
 export default async function handler(req, res) {
   if (req.method !== 'POST') {
     return res.status(405).json({ error: 'Method not allowed' });
@@ -11,54 +12,42 @@ export default async function handler(req, res) {
     return res.status(500).json({ error: 'Server configuration error: Gemini API Key missing' });
   }
 
-  // SAFE MODE: Combine system prompt with the first message to ensure 100% compatibility across all API versions
-  const combinedMessages = [...messages];
-  if (system && combinedMessages.length > 0 && combinedMessages[0].role === 'user') {
-    combinedMessages[0].content = `[SYSTEM INSTRUCTION]\n${system}\n\n[USER REQUEST]\n${combinedMessages[0].content}`;
-  }
-
-  // Convert to Gemini format
-  const contents = combinedMessages.map(msg => ({
-    role: msg.role === 'assistant' ? 'model' : 'user',
-    parts: [{ text: msg.content }]
-  }));
-
-  // Use the most compatible model name
-  const url = `https://generativelanguage.googleapis.com/v1/models/gemini-pro:generateContent?key=${apiKey}`;
-
   try {
-    const response = await fetch(url, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        contents: contents,
-        generationConfig: {
-          temperature: 0.7,
-          topK: 40,
-          topP: 0.95,
-          maxOutputTokens: 2000,
-          // Remove response_mime_type if it causes issues in v1, 
-          // Gemini 1.5 Flash is good at following JSON instructions in text
-        }
-      })
+    const genAI = new GoogleGenerativeAI(apiKey);
+    
+    // Using the latest 1.5 flash model via the official SDK
+    const model = genAI.getGenerativeModel({ 
+      model: "gemini-1.5-flash",
+      systemInstruction: system,
     });
 
-    if (!response.ok) {
-      const errorData = await response.json();
-      console.error('Gemini API Error:', errorData);
-      return res.status(response.status).json(errorData);
-    }
+    const userMessage = messages[messages.length - 1].content;
+    const history = messages.slice(0, -1).map(msg => ({
+      role: msg.role === 'assistant' ? 'model' : 'user',
+      parts: [{ text: msg.content }]
+    }));
 
-    const data = await response.json();
-    const text = data.candidates?.[0]?.content?.parts?.[0]?.text || "";
-    
+    const chat = model.startChat({
+      history: history,
+      generationConfig: {
+        maxOutputTokens: 2000,
+        temperature: 0.7,
+      },
+    });
+
+    const result = await chat.sendMessage(userMessage);
+    const response = await result.response;
+    const text = response.text();
+
     return res.status(200).json({
       content: [{ text: text }]
     });
   } catch (error) {
-    console.error('Gemini Proxy error:', error);
-    return res.status(500).json({ error: 'Failed to connect to Antigravity(Gemini) engine' });
+    console.error('Gemini SDK Error:', error);
+    return res.status(500).json({ 
+      error: { 
+        message: error.message || 'Failed to connect to Antigravity(Gemini) engine' 
+      } 
+    });
   }
 }
