@@ -15,10 +15,9 @@ export default async function handler(req, res) {
   try {
     const genAI = new GoogleGenerativeAI(apiKey);
     
-    // Using the most up-to-date and compatible model name 'gemini-flash-latest'
+    // Reverting to default (v1beta) to match the debug model list
     const model = genAI.getGenerativeModel(
-      { model: "gemini-flash-latest" },
-      { apiVersion: 'v1' }
+      { model: "gemini-flash-latest" }
     );
 
     const combinedMessages = [...messages];
