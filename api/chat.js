@@ -15,14 +15,20 @@ export default async function handler(req, res) {
   try {
     const genAI = new GoogleGenerativeAI(apiKey);
     
-    // Using the latest 1.5 flash model via the official SDK
+    // Using the most compatible model name 'gemini-pro'
+    // Note: older gemini-pro might not support systemInstruction property directly in some SDK versions,
+    // so we'll use a safer approach by prepending to the user message if needed.
     const model = genAI.getGenerativeModel({ 
-      model: "gemini-1.5-flash",
-      systemInstruction: system,
+      model: "gemini-pro",
     });
 
-    const userMessage = messages[messages.length - 1].content;
-    const history = messages.slice(0, -1).map(msg => ({
+    const combinedMessages = [...messages];
+    if (system && combinedMessages.length > 0 && combinedMessages[0].role === 'user') {
+      combinedMessages[0].content = `[INSTRUCTION]\n${system}\n\n[REQUEST]\n${combinedMessages[0].content}`;
+    }
+
+    const userMessage = combinedMessages[combinedMessages.length - 1].content;
+    const history = combinedMessages.slice(0, -1).map(msg => ({
       role: msg.role === 'assistant' ? 'model' : 'user',
       parts: [{ text: msg.content }]
     }));
