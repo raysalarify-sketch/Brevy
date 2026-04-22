@@ -34,8 +34,9 @@ export default async function handler(req, res) {
     const chat = model.startChat({
       history: history,
       generationConfig: {
-        maxOutputTokens: 2000,
-        temperature: 0.7,
+        maxOutputTokens: 2500,
+        temperature: 0.4,
+        topP: 0.8,
       },
     });
 

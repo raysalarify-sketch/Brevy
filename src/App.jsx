@@ -595,15 +595,45 @@ export default function App() {
         {view === "result" && res && !showDoc && (
           <div className="fade-in">
             <Breadcrumbs cat={cat} tpl={tpl} onHome={goHome} />
-            <div className="card" style={{ marginBottom: 24, borderLeft: "4px solid var(--primary)" }}>
-              <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 16 }}>
-                <span style={{ fontWeight: 700 }}>Optimized AI Prompt</span>
-                <button className="btn-secondary" style={{ padding: "6px 12px", fontSize: 12 }} onClick={() => copyToClipboard(res.prompt, "p")}>
-                  {copiedId === "p" ? "Copied!" : "Copy"}
-                </button>
+            <div className="card" style={{ marginBottom: 24, borderLeft: "4px solid var(--primary)", position: 'relative' }}>
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: 'center', marginBottom: 16 }}>
+                <span style={{ fontWeight: 700, color: 'var(--primary)' }}>✨ Optimized AI Prompt (Editable)</span>
+                <div style={{ display: 'flex', gap: 8 }}>
+                  <button className="btn-secondary" style={{ padding: "6px 12px", fontSize: 12 }} onClick={() => copyToClipboard(res.prompt, "p")}>
+                    {copiedId === "p" ? "✓ Copied!" : "📋 Copy"}
+                  </button>
+                </div>
               </div>
-              <div style={{ padding: 20, background: "var(--bg)", borderRadius: 12, fontSize: 14, lineHeight: 1.8, whiteSpace: "pre-wrap" }}>{res.prompt}</div>
+              <textarea 
+                className="input-text"
+                style={{ width: '100%', minHeight: '200px', padding: 20, background: "var(--bg)", borderRadius: 12, fontSize: 14, lineHeight: 1.8, border: 'none', resize: 'vertical' }}
+                value={res.prompt}
+                onChange={(e) => setRes({...res, prompt: e.target.value})}
+              />
+              
+              <div style={{ marginTop: 20, display: 'flex', gap: 10, flexWrap: 'wrap' }}>
+                <span style={{ fontSize: 12, fontWeight: 700, color: 'var(--text-light)', alignSelf: 'center' }}>🤖 AI 리터칭:</span>
+                <button className="btn-secondary" style={{ fontSize: 12, padding: '6px 12px' }} onClick={async () => {
+                  setLoading(true);
+                  const text = await callApi(SYS_PROMPT, `이전 프롬프트를 더 전문적이고 격식 있는 비즈니스 어투로 고쳐줘: ${res.prompt}`);
+                  try { const next = JSON.parse(text.match(/\{[\s\S]*\}/)[0]); setRes(next); } catch(e) {}
+                  setLoading(false);
+                }}>더 전문적으로</button>
+                <button className="btn-secondary" style={{ fontSize: 12, padding: '6px 12px' }} onClick={async () => {
+                  setLoading(true);
+                  const text = await callApi(SYS_PROMPT, `이전 프롬프트를 핵심만 담아 아주 간결하게 줄여줘: ${res.prompt}`);
+                  try { const next = JSON.parse(text.match(/\{[\s\S]*\}/)[0]); setRes(next); } catch(e) {}
+                  setLoading(false);
+                }}>간결하게</button>
+                <button className="btn-secondary" style={{ fontSize: 12, padding: '6px 12px' }} onClick={async () => {
+                  setLoading(true);
+                  const text = await callApi(SYS_PROMPT, `이전 프롬프트에 구체적인 예시와 제약사항을 더 추가해서 상세하게 만들어줘: ${res.prompt}`);
+                  try { const next = JSON.parse(text.match(/\{[\s\S]*\}/)[0]); setRes(next); } catch(e) {}
+                  setLoading(false);
+                }}>상세하게</button>
+              </div>
             </div>
+            
             <div style={{ display: "flex", gap: 12 }}>
               <button className="btn-primary" onClick={handleGenDoc} disabled={docLoading}>📄 Create Document</button>
               <button className="btn-secondary" onClick={goHome}>Home</button>
@@ -613,9 +643,17 @@ export default function App() {
 
         {showDoc && (
           <div className="fade-in">
-            <div ref={docRef} className="doc-editor" contentEditable="true" dangerouslySetInnerHTML={{ __html: docHtml }} style={{ marginBottom: 32 }} />
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
+              <div style={{ display: 'flex', gap: 8 }}>
+                <button className="btn-secondary" style={{ padding: '6px 10px' }} onClick={() => document.execCommand('bold')}><b>B</b></button>
+                <button className="btn-secondary" style={{ padding: '6px 10px' }} onClick={() => document.execCommand('italic')}><i>I</i></button>
+                <button className="btn-secondary" style={{ padding: '6px 10px' }} onClick={() => document.execCommand('insertUnorderedList')}>• List</button>
+              </div>
+              <div style={{ fontSize: 12, color: 'var(--text-light)' }}>💡 편집기 내부를 클릭하여 직접 수정하세요.</div>
+            </div>
+            <div ref={docRef} className="doc-editor" contentEditable="true" dangerouslySetInnerHTML={{ __html: docHtml }} style={{ marginBottom: 32, minHeight: '500px', outline: 'none' }} />
             <div style={{ display: "flex", gap: 12 }}>
-              <button className="btn-primary" onClick={() => window.print()}>Print / PDF</button>
+              <button className="btn-primary" onClick={() => window.print()}>🖨️ Print / PDF</button>
               <button className="btn-secondary" onClick={() => setShowDoc(false)}>Back</button>
             </div>
           </div>
