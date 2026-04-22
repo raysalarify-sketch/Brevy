@@ -2,6 +2,7 @@
   "name": "brevy",
   "version": "1.0.0",
   "description": "Brevy Prompt Studio — 업무 요청을 AI가 이해하는 언어로 변환하는 프롬프트 최적화 도구",
+  "type": "module",
   "private": true,
   "scripts": {
     "dev": "vite",
