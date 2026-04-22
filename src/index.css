@@ -408,7 +408,7 @@ h1, h2, h3, .serif {
 /* Base Utility for Layout */
 .home-layout {
   display: grid;
-  grid-template-columns: 1fr 360px;
+  grid-template-columns: 1fr 420px;
   gap: 32px;
   align-items: start;
 }

@@ -414,16 +414,15 @@ export default function App() {
               </div>
 
               <div className="card sticky-side" style={{ border: '1px solid var(--primary)', background: '#fff' }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 16 }}>
-                  <span style={{ fontSize: 20 }}>✨</span>
-                  <h3 style={{ fontSize: 18, margin: 0 }}>자유 양식 퀵 프롬프트</h3>
+                <div style={{ marginBottom: 16 }}>
+                  <h3 style={{ fontSize: 20, fontWeight: 800, margin: 0, color: 'var(--primary)' }}>자유 양식 퀵 프롬프트</h3>
                 </div>
                 <p style={{ fontSize: 13, color: 'var(--text-muted)', marginBottom: 20 }}>템플릿 없이 바로 요청 사항을 입력하세요.</p>
                 <textarea 
                   className="input-text"
                   placeholder="예: 3년차 마케터를 위한 이직용 자기소개서 초안을 작성해줘"
-                  rows={6}
-                  style={{ marginBottom: 16, resize: 'none', fontSize: 14 }}
+                  rows={10}
+                  style={{ marginBottom: 16, resize: 'none', fontSize: 15, lineHeight: 1.6 }}
                   value={fld.freeContent || ""}
                   onChange={e => setFld({...fld, freeContent: e.target.value})}
                 />
