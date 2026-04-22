@@ -65,7 +65,7 @@ const Header = ({ templateCount, onHome, onAlerts }) => {
       </div>
 
       <div style={{ fontSize: 12, color: 'var(--text-muted)', fontWeight: 500 }}>
-        <span style={{ color: 'var(--primary)', fontWeight: 700 }}>{templateCount}</span> templates available
+        <span style={{ color: 'var(--primary)', fontWeight: 700 }}>{templateCount}</span> templates
       </div>
     </header>
   );
