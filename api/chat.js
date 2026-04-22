@@ -13,14 +13,14 @@ export default async function handler(req, res) {
   }
 
   try {
+    // Force the use of stable v1 API version
     const genAI = new GoogleGenerativeAI(apiKey);
     
-    // Using the most compatible model name 'gemini-pro'
-    // Note: older gemini-pro might not support systemInstruction property directly in some SDK versions,
-    // so we'll use a safer approach by prepending to the user message if needed.
-    const model = genAI.getGenerativeModel({ 
-      model: "gemini-pro",
-    });
+    // Specifying apiVersion: 'v1' to avoid v1beta issues
+    const model = genAI.getGenerativeModel(
+      { model: "gemini-1.5-flash" },
+      { apiVersion: 'v1' }
+    );
 
     const combinedMessages = [...messages];
     if (system && combinedMessages.length > 0 && combinedMessages[0].role === 'user') {
