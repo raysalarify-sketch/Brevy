@@ -76,9 +76,9 @@ export default function App() {
   };
 
   const curDiv = DIVS.find(d => d.id === divId);
-  const allTemplates = DIVS.flatMap(dv => 
-    dv.cats.flatMap(c => 
-      c.t.map(t => ({
+  const allTemplates = (DIVS || []).flatMap(dv => 
+    (dv.cats || []).flatMap(c => 
+      (c.t || []).map(t => ({
         ...t, 
         cId: c.id, cL: c.l, cI: c.ic, cC: c.c, 
         dvId: dv.id, dvL: dv.label
