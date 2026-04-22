@@ -14,16 +14,4 @@ if (!supabaseUrl || !supabaseAnonKey) {
   console.warn('Database features will be disabled.');
 }
 
-export const supabase = (supabaseUrl && supabaseAnonKey) 
-  ? createClient(supabaseUrl, supabaseAnonKey) 
-  : { 
-      from: () => ({ 
-        select: () => ({ 
-          eq: () => ({ single: () => Promise.resolve({ data: null, error: 'Config missing' }) }),
-          order: () => ({ limit: () => Promise.resolve({ data: [], error: 'Config missing' }) }),
-          limit: () => Promise.resolve({ data: [], error: 'Config missing' })
-        }), 
-        insert: () => Promise.resolve({ error: 'Config missing' }),
-        delete: () => ({ eq: () => Promise.resolve({ error: 'Config missing' }) })
-      }) 
-    };
+export const supabase = createClient(supabaseUrl, supabaseAnonKey);
