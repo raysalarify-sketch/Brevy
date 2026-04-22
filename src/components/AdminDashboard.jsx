@@ -93,9 +93,9 @@ const AdminDashboard = ({ onExit }) => {
               <div style={{ fontSize: '11px', opacity: 0.8, marginBottom: '8px', fontWeight: 600 }}>입장 요청 대기</div>
               <div style={{ fontSize: '1.75rem', fontWeight: 700 }}>{pendingRequests.length}</div>
             </div>
-            <div className="card" style={{ textAlign: 'center' }}>
-              <div style={{ fontSize: '11px', color: 'var(--text-muted)', marginBottom: '8px', fontWeight: 600 }}>활성 코드 수</div>
-              <div style={{ fontSize: '1.75rem', fontWeight: 700 }}>{accessCodes.length}</div>
+            <div className="card" style={{ textAlign: 'center', background: 'linear-gradient(135deg, var(--primary) 0%, #4338ca 100%)', color: 'white', border: 'none', boxShadow: '0 10px 25px -5px rgba(79, 70, 229, 0.4)' }}>
+              <div style={{ fontSize: '11px', opacity: 0.9, marginBottom: '8px', fontWeight: 600, letterSpacing: '0.05em' }}>CURRENT ACTIVE CODE</div>
+              <div style={{ fontSize: '2rem', fontWeight: 800, textShadow: '0 2px 4px rgba(0,0,0,0.1)' }}>{accessCodes.sort((a, b) => new Date(b.created_at) - new Date(a.created_at))[0]?.code || 'NONE'}</div>
             </div>
           </div>
 
