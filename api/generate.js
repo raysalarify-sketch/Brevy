@@ -11,7 +11,7 @@ export default async function handler(req, res) {
     return res.status(500).json({ error: 'Server configuration error: Gemini API Key missing' });
   }
 
-  // Convert messages to Gemini format (using snake_case for REST API)
+  // Convert messages to Gemini format (using CamelCase for REST API as per latest specs)
   const contents = messages.map(msg => ({
     role: msg.role === 'assistant' ? 'model' : 'user',
     parts: [{ text: msg.content }]
@@ -26,16 +26,16 @@ export default async function handler(req, res) {
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
-        system_instruction: {
+        systemInstruction: {
           parts: [{ text: system }]
         },
         contents: contents,
-        generation_config: {
+        generationConfig: {
           temperature: 0.7,
-          top_k: 40,
-          top_p: 0.95,
-          max_output_tokens: 2000,
-          response_mime_type: system.includes("JSON") ? "application/json" : "text/plain"
+          topK: 40,
+          topP: 0.95,
+          maxOutputTokens: 2000,
+          responseMimeType: system.includes("JSON") ? "application/json" : "text/plain"
         }
       })
     });
