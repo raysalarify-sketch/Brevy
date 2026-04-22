@@ -58,7 +58,8 @@ const AdminDashboard = ({ onExit }) => {
       setNewCode('');
       fetchAdminData();
     } catch (err) {
-      alert('코드 등록 중 오류가 발생했습니다. 중복된 코드일 수 있습니다.');
+      console.error('Insert Error:', err);
+      alert(`코드 등록 중 오류가 발생했습니다: ${err.message || err.error || '연결 오류'}`);
     }
   };
 
