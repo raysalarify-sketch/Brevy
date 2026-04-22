@@ -1,0 +1,502 @@
+import { useState, useCallback, useRef, useEffect } from "react";
+
+const SYS_PROMPT = `당신은 "브레비(Brevy)" 프롬프트 최적화 엔진입니다.
+업무 요구사항을 AI 전달용 최적화 프롬프트로 변환합니다.
+
+핵심: 스코프 가드(범위 제한) + 품질 가드(즉시 사용 가능 수준)
+
+JSON만 출력 (백틱 없이):
+{"title":"제목","prompt":"완전한 프롬프트(스코프+품질가드 포함, 한국어)","scope_do":["수행"],"scope_dont":["금지"],"quality":["품질조건"],"checklist":["확인항목"],"complexity":"low|medium|high","tip":"팁"}`;
+
+const SYS_DOC = `당신은 문서 생성 엔진입니다. 사용자의 요청에 따라 실제 사용 가능한 문서를 HTML로 생성합니다.
+
+규칙:
+- 완전한 HTML 문서 내용만 출력 (html/body 태그 없이 내용만)
+- 테이블, 리스트, 제목 등 적절한 HTML 태그 사용
+- 인라인 CSS로 깔끔한 서식 적용 (폰트: Pretendard, 여백, 테두리 등)
+- 서명란이 필요한 문서는 <div class="sig-area" style="border-bottom:2px solid #000;width:200px;height:40px;margin:10px 0;display:inline-block"></div> 으로 표시
+- 입력란이 필요한 곳은 <span class="input-field" contenteditable="true" style="border-bottom:1px solid #999;min-width:120px;display:inline-block;padding:2px 4px">&nbsp;</span> 으로 표시
+- A4 인쇄에 최적화된 레이아웃
+- 밑줄, 테두리, 셀 경계 절대 누락 금지
+- 텍스트가 칸을 넘치지 않도록 처리
+- 백틱이나 마크다운 없이 순수 HTML만 출력`;
+
+// ─── Template Data ───
+const O=[
+  {id:"doc",l:"서류·문서",ic:"✎",c:"#c2410c",d:"계약서, 보고서, 공문",t:[
+    {id:"d1",n:"대량 서류 생성",d:"데이터 기반 일괄 생성",f:[{k:"type",l:"문서 종류",p:"예: 근로계약서"},{k:"cnt",l:"건수",p:"예: 50건"},{k:"src",l:"데이터 출처",p:"예: 직원명단.xlsx"},{k:"tpl",l:"양식",p:"예: 기존 PDF 템플릿"},{k:"q",l:"품질 조건",p:"예: 밑줄 유지, A4 인쇄"}]},
+    {id:"d2",n:"보고서 작성",d:"실적/현황 보고서",f:[{k:"type",l:"유형",p:"예: 월간 실적"},{k:"to",l:"수신",p:"예: 대표이사"},{k:"data",l:"데이터",p:"예: 매출 97%"},{k:"fmt",l:"형식",p:"예: A4 2페이지"}]},
+    {id:"d3",n:"공문·안내문",d:"사내외 공식 문서",f:[{k:"purpose",l:"목적",p:"예: 정책 변경"},{k:"to",l:"수신",p:"예: 전 직원"},{k:"body",l:"내용",p:"예: 재택 주2회"},{k:"tone",l:"톤",p:"예: 격식체"}]},
+  ]},
+  {id:"xl",l:"엑셀·데이터",ic:"▦",c:"#15803d",d:"스프레드시트, 수식, 정리",t:[
+    {id:"x1",n:"데이터 정리",d:"클렌징·포맷팅",f:[{k:"src",l:"파일",p:"예: 고객DB.xlsx"},{k:"task",l:"내용",p:"예: 중복 제거"},{k:"out",l:"결과",p:"예: 피벗 포함"}]},
+    {id:"x2",n:"수식·자동화",d:"엑셀 수식·매크로",f:[{k:"goal",l:"목표",p:"예: 월별 합산"},{k:"range",l:"범위",p:"예: B2:F100"},{k:"no",l:"금지",p:"예: G열 기존 수식"}]},
+  ]},
+  {id:"em",l:"이메일·소통",ic:"✉",c:"#0369a1",d:"메일, 슬랙, 공지",t:[
+    {id:"e1",n:"비즈니스 이메일",d:"거래처·고객 메일",f:[{k:"to",l:"수신",p:"예: 거래처"},{k:"purpose",l:"목적",p:"예: 견적 회신"},{k:"key",l:"핵심",p:"예: 1,200만원"},{k:"tone",l:"톤",p:"예: 정중"}]},
+    {id:"e2",n:"사내 공지",d:"팀·전사 공지",f:[{k:"ch",l:"채널",p:"예: 슬랙"},{k:"topic",l:"내용",p:"예: 시스템 점검"},{k:"action",l:"조치",p:"예: 설문 응답"}]},
+  ]},
+  {id:"pl",l:"기획·전략",ic:"◎",c:"#9333ea",d:"기획서, 제안서",t:[
+    {id:"p1",n:"기획서",d:"프로젝트 기획",f:[{k:"name",l:"프로젝트",p:"예: 신규 런칭"},{k:"goal",l:"목표",p:"예: MAU 10만"},{k:"scope",l:"범위",p:"예: 3개월"},{k:"limit",l:"제약",p:"예: 예산 2억"}]},
+  ]},
+  {id:"mk",l:"마케팅",ic:"◈",c:"#ea580c",d:"카피, SNS, 광고",t:[
+    {id:"m1",n:"SNS 콘텐츠",d:"인스타·블로그·유튜브",f:[{k:"plat",l:"플랫폼",p:"예: 인스타"},{k:"topic",l:"주제",p:"예: 신제품"},{k:"tone",l:"톤",p:"예: MZ타겟"},{k:"cta",l:"CTA",p:"예: 링크 클릭"}]},
+  ]},
+  {id:"hr",l:"인사·HR",ic:"⊕",c:"#4338ca",d:"채용, 평가, 교육",t:[
+    {id:"h1",n:"채용 공고",d:"JD 작성",f:[{k:"pos",l:"포지션",p:"예: 개발자"},{k:"req",l:"요건",p:"예: 3년 경력"},{k:"ben",l:"복리후생",p:"예: 스톡옵션"}]},
+  ]},
+  {id:"lg",l:"법무·계약",ic:"§",c:"#b45309",d:"계약서, 약관",t:[
+    {id:"l1",n:"계약서 작성",d:"초안·검토",f:[{k:"type",l:"유형",p:"예: NDA"},{k:"party",l:"당사자",p:"예: 당사↔프리랜서"},{k:"terms",l:"조건",p:"예: 1년, 위약금 10%"}]},
+  ]},
+  {id:"fn",l:"회계·재무",ic:"¤",c:"#047857",d:"정산, 예산",t:[
+    {id:"f1",n:"예산·정산",d:"예산 계획·정산",f:[{k:"type",l:"유형",p:"예: 월간 정산"},{k:"period",l:"기간",p:"예: Q1"},{k:"items",l:"항목",p:"예: 인건비"}]},
+  ]},
+  {id:"cs",l:"고객지원",ic:"◉",c:"#0e7490",d:"CS 스크립트, FAQ",t:[
+    {id:"c1",n:"응대 스크립트",d:"상담원용",f:[{k:"case",l:"상황",p:"예: 환불 요청"},{k:"policy",l:"정책",p:"예: 7일 이내"},{k:"tone",l:"톤",p:"예: 공감적"}]},
+  ]},
+  {id:"sl",l:"영업",ic:"⊗",c:"#be185d",d:"견적, 제안, CRM",t:[
+    {id:"s1",n:"견적서",d:"고객 맞춤 견적",f:[{k:"client",l:"고객",p:"예: A사"},{k:"product",l:"제품",p:"예: SaaS"},{k:"price",l:"가격",p:"예: 월 구독"}]},
+  ]},
+];
+
+const DV=[
+  {id:"ui",l:"UI·UX",ic:"◧",c:"#4f46e5",d:"화면 개선",t:[
+    {id:"u1",n:"화면 수정",d:"기존 UI 변경",f:[{k:"target",l:"대상",p:"예: 미리보기 버튼"},{k:"issue",l:"문제",p:"예: 갤럭시 안 됨"},{k:"want",l:"원하는 결과",p:"예: 별도 버튼"},{k:"no",l:"금지",p:"예: iOS 로직"}]},
+  ]},
+  {id:"api",l:"API·연동",ic:"⇌",c:"#0284c7",d:"API, 외부 서비스",t:[
+    {id:"a1",n:"API 개발",d:"엔드포인트 변경",f:[{k:"ep",l:"엔드포인트",p:"예: POST /api/loans"},{k:"spec",l:"스펙",p:"예: 페이지네이션"},{k:"no",l:"금지",p:"예: 인증 미들웨어"}]},
+    {id:"a2",n:"외부 연동",d:"3rd party",f:[{k:"svc",l:"서비스",p:"예: 슬랙"},{k:"data",l:"데이터",p:"예: 인사정보"},{k:"no",l:"금지",p:"예: DB 스키마"}]},
+  ]},
+  {id:"bug",l:"버그 수정",ic:"⚑",c:"#dc2626",d:"오류, 예외",t:[
+    {id:"b1",n:"버그 수정",d:"버그 대응",f:[{k:"sym",l:"증상",p:"예: 무한 로딩"},{k:"repro",l:"재현",p:"예: Galaxy S24"},{k:"exp",l:"정상동작",p:"예: 완료 이동"},{k:"no",l:"금지",p:"예: 다른 기기"}]},
+  ]},
+  {id:"lo",l:"로직·정책",ic:"⚙",c:"#ca8a04",d:"비즈니스 로직",t:[
+    {id:"lo1",n:"로직 구현",d:"정책 코드 반영",f:[{k:"rule",l:"규칙",p:"예: 1회 제한"},{k:"trigger",l:"트리거",p:"예: 서류 제출"},{k:"no",l:"금지",p:"예: 승인 플로우"}]},
+  ]},
+  {id:"db",l:"DB·데이터",ic:"⊞",c:"#059669",d:"스키마, 쿼리",t:[
+    {id:"db1",n:"DB 작업",d:"테이블·쿼리",f:[{k:"task",l:"작업",p:"예: 컬럼 추가"},{k:"table",l:"테이블",p:"예: users"},{k:"no",l:"금지",p:"예: FK"}]},
+  ]},
+  {id:"ts",l:"테스트",ic:"✓",c:"#0d9488",d:"QA, 테스트 코드",t:[
+    {id:"t1",n:"테스트 작성",d:"유닛·통합",f:[{k:"target",l:"대상",p:"예: 로그인 API"},{k:"cases",l:"케이스",p:"예: 정상, 오류"},{k:"fw",l:"프레임워크",p:"예: Jest"}]},
+  ]},
+  {id:"dv",l:"배포·인프라",ic:"☁",c:"#475569",d:"CI/CD, 서버",t:[
+    {id:"dv1",n:"배포 작업",d:"서버·CI/CD",f:[{k:"task",l:"작업",p:"예: Docker"},{k:"env",l:"환경",p:"예: AWS"}]},
+  ]},
+  {id:"pf",l:"성능",ic:"⚡",c:"#d97706",d:"속도 최적화",t:[
+    {id:"pf1",n:"성능 개선",d:"속도·리소스",f:[{k:"issue",l:"이슈",p:"예: 로딩 5초"},{k:"goal",l:"목표",p:"예: 2초 이내"},{k:"no",l:"금지",p:"예: 비즈니스 로직"}]},
+  ]},
+  {id:"sc",l:"보안",ic:"⊘",c:"#e11d48",d:"인증, 취약점",t:[
+    {id:"sc1",n:"보안 개선",d:"인증·권한",f:[{k:"issue",l:"이슈",p:"예: XSS"},{k:"scope",l:"범위",p:"예: 로그인"}]},
+  ]},
+];
+
+const P=[
+  {id:"resume",l:"이력서·자소서",ic:"⊡",c:"#6d28d9",d:"취업, 이직 준비",t:[
+    {id:"r1",n:"이력서 작성",d:"경력·신입 이력서",f:[{k:"job",l:"지원 직무",p:"예: 마케팅 매니저"},{k:"exp",l:"경력 요약",p:"예: 마케팅 5년"},{k:"str",l:"강점",p:"예: 데이터 분석"},{k:"fmt",l:"형식",p:"예: 1페이지"}]},
+    {id:"r2",n:"자기소개서",d:"지원 동기·역량",f:[{k:"company",l:"지원 회사",p:"예: 카카오"},{k:"job",l:"직무",p:"예: PM"},{k:"story",l:"핵심 경험",p:"예: 서비스 기획 3건"},{k:"tone",l:"톤",p:"예: 진솔, 열정"}]},
+  ]},
+  {id:"gov",l:"민원·관공서",ic:"⊞",c:"#1d4ed8",d:"서류 신청, 민원",t:[
+    {id:"g1",n:"민원 서류 작성",d:"진정서, 신청서 등",f:[{k:"type",l:"서류 종류",p:"예: 진정서, 탄원서"},{k:"to",l:"제출처",p:"예: 구청, 경찰서"},{k:"content",l:"내용",p:"예: 층간소음 민원"},{k:"tone",l:"톤",p:"예: 격식, 간결"}]},
+  ]},
+  {id:"travel",l:"여행 계획",ic:"✈",c:"#0891b2",d:"일정, 예산, 체크리스트",t:[
+    {id:"tv1",n:"여행 일정 작성",d:"코스·예산 계획",f:[{k:"dest",l:"목적지",p:"예: 오사카 3박4일"},{k:"style",l:"여행 스타일",p:"예: 맛집 위주, 가족"},{k:"budget",l:"예산",p:"예: 인당 100만원"},{k:"must",l:"필수 코스",p:"예: 유니버셜, 도톤보리"}]},
+  ]},
+  {id:"health",l:"건강·의료",ic:"+",c:"#dc2626",d:"건강 기록, 병원 준비",t:[
+    {id:"hl1",n:"증상 기록서",d:"병원 방문 전 정리",f:[{k:"sym",l:"증상",p:"예: 두통, 2주째 지속"},{k:"when",l:"발생 시기",p:"예: 아침에 심함"},{k:"history",l:"과거 이력",p:"예: 고혈압 약 복용 중"}]},
+  ]},
+  {id:"money",l:"가계부·재테크",ic:"₩",c:"#047857",d:"가계부, 투자, 절약",t:[
+    {id:"mn1",n:"월간 가계부",d:"수입·지출 정리",f:[{k:"income",l:"수입",p:"예: 월급 350만원"},{k:"fixed",l:"고정 지출",p:"예: 월세 70, 보험 15"},{k:"goal",l:"저축 목표",p:"예: 월 100만원"}]},
+  ]},
+  {id:"event",l:"경조사",ic:"❋",c:"#be185d",d:"청첩장, 축사, 감사장",t:[
+    {id:"ev1",n:"축사·인사말",d:"결혼식, 행사 인사",f:[{k:"occasion",l:"행사",p:"예: 결혼식, 돌잔치"},{k:"relation",l:"관계",p:"예: 친구, 상사"},{k:"tone",l:"톤",p:"예: 감동적, 유머러스"},{k:"length",l:"길이",p:"예: 3분 분량"}]},
+  ]},
+  {id:"house",l:"이사·부동산",ic:"⌂",c:"#92400e",d:"계약, 체크리스트",t:[
+    {id:"hs1",n:"이사 체크리스트",d:"이사 전후 할일",f:[{k:"type",l:"유형",p:"예: 전세 → 월세 이사"},{k:"date",l:"이사일",p:"예: 5/15"},{k:"family",l:"가족 구성",p:"예: 부부+아이 1명"}]},
+  ]},
+  {id:"study",l:"학습·자기개발",ic:"▤",c:"#7c3aed",d:"공부 계획, 정리",t:[
+    {id:"st1",n:"학습 플랜",d:"시험·자격증 준비",f:[{k:"subject",l:"과목",p:"예: 정보처리기사"},{k:"period",l:"기간",p:"예: 3개월"},{k:"level",l:"현재 수준",p:"예: 기초"},{k:"goal",l:"목표",p:"예: 필기+실기 합격"}]},
+  ]},
+];
+
+const DIVS = [
+  { id:"office", label:"사무용", ic:"✎", cats:O },
+  { id:"dev", label:"개발용", ic:"⌨", cats:DV },
+  { id:"personal", label:"개인용", ic:"◉", cats:P },
+];
+
+function App(){
+  const [view,setView]=useState("home");
+  const [divId,setDivId]=useState("office");
+  const [cat,setCat]=useState(null);
+  const [tpl,setTpl]=useState(null);
+  const [fld,setFld]=useState({});
+  const [res,setRes]=useState(null);
+  const [ld,setLd]=useState(false);
+  const [err,setErr]=useState("");
+  const [cp,setCp]=useState("");
+  const [sq,setSq]=useState("");
+  // Doc state
+  const [docHtml,setDocHtml]=useState("");
+  const [docLd,setDocLd]=useState(false);
+  const [showDoc,setShowDoc]=useState(false);
+  const [sigMode,setSigMode]=useState(false);
+  const [sigData,setSigData]=useState(null);
+  const sigCanvas=useRef(null);
+  const sigDrawing=useRef(false);
+  const docRef=useRef(null);
+  const topRef=useRef(null);
+
+  const curDiv=DIVS.find(d=>d.id===divId);
+  const allT=DIVS.flatMap(dv=>dv.cats.flatMap(c=>c.t.map(t=>({...t,cId:c.id,cL:c.l,cI:c.ic,cC:c.c,dvId:dv.id,dvL:dv.label}))));
+  const filt=sq.trim()?allT.filter(t=>(t.n+t.d+t.cL+t.dvL).toLowerCase().includes(sq.toLowerCase())):[];
+
+  const goHome=()=>{setView("home");setCat(null);setTpl(null);setRes(null);setShowDoc(false);setErr("");};
+  const goCat=c=>{setCat(c);setView("tpls");};
+  const goTpl=t=>{setTpl(t);setFld({});setView("fill");};
+
+  const callApi=useCallback(async(system,msg)=>{
+    const r=await fetch("https://api.anthropic.com/v1/messages",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({model:"claude-sonnet-4-20250514",max_tokens:2000,system,messages:[{role:"user",content:msg}]})});
+    const d=await r.json();
+    return d.content?.map(b=>b.text||"").filter(Boolean).join("");
+  },[]);
+
+  const submit=useCallback(async()=>{
+    if(!tpl)return;setLd(true);setErr("");setRes(null);
+    const ff=tpl.f.map(f=>`${f.l}: ${fld[f.k]||"(미입력)"}`).join("\n");
+    const dv=DIVS.find(d=>d.cats.some(c=>c.t.some(t=>t.id===tpl.id)));
+    const c=dv.cats.find(c=>c.t.some(t=>t.id===tpl.id));
+    const msg=`## 작업\n${dv.label} > ${c.l} > ${tpl.n}\n${tpl.d}\n\n## 입력\n${ff}`;
+    try{
+      const tx=await callApi(SYS_PROMPT,msg);
+      setRes(JSON.parse(tx.replace(/```json|```/g,"").trim()));
+      setView("result");
+    }catch(e){console.error(e);setErr("변환 실패. 다시 시도해 주세요.");}
+    finally{setLd(false);}
+  },[tpl,fld,callApi]);
+
+  const genDoc=useCallback(async()=>{
+    if(!res)return;setDocLd(true);
+    try{
+      const tx=await callApi(SYS_DOC,res.prompt);
+      setDocHtml(tx.replace(/```html|```/g,"").trim());
+      setShowDoc(true);
+    }catch(e){console.error(e);setErr("문서 생성 실패.");}
+    finally{setDocLd(false);}
+  },[res,callApi]);
+
+  const copy=async(t,id)=>{try{await navigator.clipboard.writeText(t);setCp(id);setTimeout(()=>setCp(""),1500);}catch{}};
+
+  // Signature
+  const startSig=()=>{setSigMode(true);setSigData(null);};
+  const initCanvas=useCallback(c=>{
+    if(!c)return;sigCanvas.current=c;const ctx=c.getContext("2d");ctx.fillStyle="#fff";ctx.fillRect(0,0,c.width,c.height);ctx.strokeStyle="#292524";ctx.lineWidth=2;ctx.lineCap="round";
+  },[]);
+  const onDown=e=>{sigDrawing.current=true;const c=sigCanvas.current;const r=c.getBoundingClientRect();const ctx=c.getContext("2d");ctx.beginPath();ctx.moveTo(e.clientX-r.left,e.clientY-r.top);};
+  const onMove=e=>{if(!sigDrawing.current)return;const c=sigCanvas.current;const r=c.getBoundingClientRect();c.getContext("2d").lineTo(e.clientX-r.left,e.clientY-r.top);c.getContext("2d").stroke();};
+  const onUp=()=>{sigDrawing.current=false;};
+  const saveSig=()=>{if(!sigCanvas.current)return;setSigData(sigCanvas.current.toDataURL());setSigMode(false);};
+  const insertSig=()=>{if(!sigData||!docRef.current)return;const img=`<img src="${sigData}" style="height:50px;margin:8px 0;display:block" alt="서명"/>`;docRef.current.innerHTML+=img;};
+
+  const addInputField=()=>{if(!docRef.current)return;docRef.current.innerHTML+=`<div style="margin:8px 0"><span contenteditable="true" style="border:1px dashed #a8a29e;border-radius:6px;min-width:200px;display:inline-block;padding:6px 10px;font-size:14px;color:#292524;background:#fefce8">여기에 입력하세요</span></div>`;};
+
+  // Download
+  const downloadHtml=()=>{
+    if(!docRef.current)return;
+    const html=`<!DOCTYPE html><html lang="ko"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>${res?.title||"문서"}</title><link href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard/dist/web/static/pretendard.css" rel="stylesheet"><style>body{font-family:Pretendard,-apple-system,sans-serif;max-width:800px;margin:40px auto;padding:20px;color:#292524;line-height:1.7}table{border-collapse:collapse;width:100%}td,th{border:1px solid #d6d3d1;padding:8px 12px}@media print{body{margin:0;padding:20px}}</style></head><body>${docRef.current.innerHTML}</body></html>`;
+    const b=new Blob([html],{type:"text/html;charset=utf-8"});
+    const u=URL.createObjectURL(b);const a=document.createElement("a");a.href=u;a.download=`${res?.title||"문서"}.html`;a.click();URL.revokeObjectURL(u);
+  };
+  const downloadTxt=()=>{
+    if(!docRef.current)return;
+    const b=new Blob([docRef.current.innerText],{type:"text/plain;charset=utf-8"});
+    const u=URL.createObjectURL(b);const a=document.createElement("a");a.href=u;a.download=`${res?.title||"문서"}.txt`;a.click();URL.revokeObjectURL(u);
+  };
+  const shareDoc=async()=>{
+    if(!docRef.current)return;
+    if(navigator.share){try{await navigator.share({title:res?.title,text:docRef.current.innerText});}catch{}}
+    else{await copy(docRef.current.innerText,"share");}
+  };
+  const printDoc=()=>{
+    if(!docRef.current)return;
+    const w=window.open("","_blank");
+    w.document.write(`<!DOCTYPE html><html><head><meta charset="UTF-8"><link href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard/dist/web/static/pretendard.css" rel="stylesheet"><style>body{font-family:Pretendard,sans-serif;max-width:800px;margin:40px auto;padding:20px;color:#292524;line-height:1.7}table{border-collapse:collapse;width:100%}td,th{border:1px solid #999;padding:8px}</style></head><body>${docRef.current.innerHTML}</body></html>`);
+    w.document.close();setTimeout(()=>{w.print();},500);
+  };
+
+  const cxC={low:"#059669",medium:"#ca8a04",high:"#dc2626"};
+  const cxL={low:"Low",medium:"Mid",high:"High"};
+  useEffect(()=>{topRef.current?.scrollIntoView({behavior:"smooth"});},[view,showDoc]);
+
+  const BC=()=>(
+    <div style={{display:"flex",alignItems:"center",gap:6,fontSize:13,marginBottom:20,flexWrap:"wrap"}}>
+      <span onClick={goHome} style={{cursor:"pointer",color:"#78716c",textDecoration:"underline",textUnderlineOffset:3}}>전체</span>
+      {cat&&<><span style={{color:"#d6d3d1"}}>›</span><span onClick={()=>setView("tpls")} style={{cursor:"pointer",color:"#78716c",textDecoration:"underline",textUnderlineOffset:3}}>{cat.l}</span></>}
+      {tpl&&view!=="tpls"&&<><span style={{color:"#d6d3d1"}}>›</span><span style={{color:"#292524",fontWeight:500}}>{tpl.n}</span></>}
+    </div>
+  );
+
+  return(
+    <div ref={topRef} style={{minHeight:"100vh",background:"#faf9f7",color:"#292524",fontFamily:"'Pretendard','Apple SD Gothic Neo',-apple-system,sans-serif"}}>
+      <style>{`
+        @import url('https://cdn.jsdelivr.net/gh/orioncactus/pretendard/dist/web/static/pretendard.css');
+        @import url('https://fonts.googleapis.com/css2?family=DM+Serif+Display&display=swap');
+        *{box-sizing:border-box;margin:0;padding:0}::selection{background:#292524;color:#faf9f7}textarea:focus,input:focus{outline:none}
+        @keyframes fi{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}
+        .fi{animation:fi .25s ease-out both}
+        .cd{background:#fff;border:1px solid #e7e5e4;border-radius:14px;padding:18px;transition:all .15s}
+        .cc{cursor:pointer}.cc:hover{border-color:#d6d3d1;transform:translateY(-1px);box-shadow:0 4px 16px #00000008}
+        .bp{background:#292524;color:#faf9f7;border:none;border-radius:10px;padding:11px 24px;font-size:14px;font-weight:600;cursor:pointer;transition:all .15s;font-family:inherit}
+        .bp:hover{background:#1c1917}.bp:disabled{opacity:.35;cursor:not-allowed}
+        .bs{background:#fff;color:#57534e;border:1px solid #d6d3d1;border-radius:8px;padding:7px 14px;font-size:13px;cursor:pointer;transition:all .12s;font-family:inherit}
+        .bs:hover{background:#f5f5f4;color:#292524}
+        .bt{background:#faf9f7;color:#78716c;border:1px solid #e7e5e4;border-radius:8px;padding:6px 12px;font-size:12px;cursor:pointer;transition:all .12s;font-family:inherit;display:flex;align-items:center;gap:5px}
+        .bt:hover{background:#f5f5f4;color:#292524;border-color:#d6d3d1}
+        .bar{height:2px;background:#292524;border-radius:1px;animation:prog 1.2s ease-in-out infinite}
+        @keyframes prog{0%{width:0;margin-left:0}50%{width:40%;margin-left:30%}100%{width:0;margin-left:100%}}
+        .si{padding:8px 12px;border-radius:8px;font-size:13px;line-height:1.5;display:flex;align-items:flex-start;gap:8px}
+        .tag{display:inline-flex;align-items:center;padding:3px 9px;border-radius:6px;font-size:11px;font-weight:600}
+        .dvb{padding:12px 0;border-radius:12px;border:2px solid;font-size:14px;font-weight:600;cursor:pointer;transition:all .15s;font-family:inherit;background:#fff;display:flex;align-items:center;justify-content:center;gap:8px;flex:1}
+        .doc-area{min-height:300px;padding:32px;background:#fff;border:1px solid #e7e5e4;border-radius:12px;font-size:14px;line-height:1.8;color:#292524;outline:none}
+        .doc-area table{border-collapse:collapse;width:100%}.doc-area td,.doc-area th{border:1px solid #d6d3d1;padding:8px 12px}
+        .toolbar{display:flex;gap:6px;flex-wrap:wrap;padding:12px 0}
+      `}</style>
+
+      <header style={{padding:"16px 24px",borderBottom:"1px solid #e7e5e4",background:"#fff",display:"flex",alignItems:"center",justifyContent:"space-between",flexWrap:"wrap",gap:10}}>
+        <div onClick={goHome} style={{display:"flex",alignItems:"center",gap:10,cursor:"pointer"}}>
+          <div style={{width:32,height:32,borderRadius:9,background:"#292524",display:"flex",alignItems:"center",justifyContent:"center",fontSize:15,fontWeight:700,color:"#faf9f7",fontFamily:"'DM Serif Display',serif"}}>B</div>
+          <div>
+            <h1 style={{fontSize:17,fontWeight:700,letterSpacing:"-0.03em",fontFamily:"'DM Serif Display',serif"}}>Brevy</h1>
+            <p style={{fontSize:10,color:"#a8a29e",letterSpacing:".04em",fontWeight:600}}>PROMPT STUDIO</p>
+          </div>
+        </div>
+        <span style={{fontSize:11,color:"#a8a29e"}}>{allT.length} templates</span>
+      </header>
+
+      {(ld||docLd)&&<div style={{height:2,background:"#f5f5f4",overflow:"hidden"}}><div className="bar"/></div>}
+
+      <main style={{maxWidth:820,margin:"0 auto",padding:"20px 18px 60px"}}>
+
+        {/* ── HOME ── */}
+        {view==="home"&&(
+          <div className="fi">
+            <div style={{marginBottom:24,textAlign:"center"}}>
+              <h2 style={{fontSize:24,fontWeight:700,fontFamily:"'DM Serif Display',serif",marginBottom:6}}>어떤 작업을 하시나요?</h2>
+              <p style={{fontSize:13,color:"#78716c"}}>카테고리 선택 → 필드 입력 → AI 프롬프트 & 문서 즉시 생성</p>
+            </div>
+            <div style={{position:"relative",marginBottom:20}}>
+              <input value={sq} onChange={e=>setSq(e.target.value)} placeholder="템플릿 검색..."
+                style={{width:"100%",padding:"12px 16px 12px 40px",background:"#fff",border:"1px solid #e7e5e4",borderRadius:12,color:"#292524",fontSize:14,fontFamily:"inherit"}}/>
+              <span style={{position:"absolute",left:14,top:"50%",transform:"translateY(-50%)",color:"#a8a29e"}}>⌕</span>
+            </div>
+
+            {sq.trim()?(
+              <div>
+                <p style={{fontSize:12,color:"#a8a29e",marginBottom:10}}>{filt.length}개 결과</p>
+                <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fill,minmax(220px,1fr))",gap:10}}>
+                  {filt.map(t=>(
+                    <div key={t.id} className="cd cc" onClick={()=>{setDivId(t.dvId);setCat(DIVS.find(d=>d.id===t.dvId).cats.find(c=>c.id===t.cId));goTpl(t);}}>
+                      <div style={{display:"flex",gap:5,marginBottom:6}}>
+                        <span className="tag" style={{background:"#f5f5f4",color:"#57534e",fontSize:10}}>{t.dvL}</span>
+                        <span className="tag" style={{background:t.cC+"12",color:t.cC}}>{t.cI} {t.cL}</span>
+                      </div>
+                      <p style={{fontSize:14,fontWeight:600,marginBottom:2}}>{t.n}</p>
+                      <p style={{fontSize:12,color:"#a8a29e"}}>{t.d}</p>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            ):(
+              <>
+                <div style={{display:"flex",gap:8,marginBottom:24}}>
+                  {DIVS.map(dv=>(
+                    <button key={dv.id} className="dvb" onClick={()=>setDivId(dv.id)}
+                      style={{borderColor:divId===dv.id?"#292524":"#e7e5e4",color:divId===dv.id?"#292524":"#a8a29e",background:divId===dv.id?"#faf9f7":"#fff"}}>
+                      <span style={{fontSize:16}}>{dv.ic}</span>{dv.label}
+                      <span style={{fontSize:11,fontWeight:400,color:"#a8a29e"}}>{dv.cats.reduce((a,c)=>a+c.t.length,0)}</span>
+                    </button>
+                  ))}
+                </div>
+                <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fill,minmax(155px,1fr))",gap:10}}>
+                  {curDiv.cats.map(c=>(
+                    <div key={c.id} className="cd cc" onClick={()=>goCat(c)} style={{textAlign:"center",padding:"20px 12px"}}>
+                      <div style={{width:44,height:44,borderRadius:12,background:c.c+"10",display:"flex",alignItems:"center",justifyContent:"center",margin:"0 auto 8px",fontSize:20,color:c.c,fontWeight:700}}>{c.ic}</div>
+                      <p style={{fontSize:13,fontWeight:600,marginBottom:2}}>{c.l}</p>
+                      <p style={{fontSize:11,color:"#a8a29e",lineHeight:1.4}}>{c.d}</p>
+                      <div style={{marginTop:8,fontSize:10,color:c.c,fontWeight:600}}>{c.t.length}개</div>
+                    </div>
+                  ))}
+                </div>
+              </>
+            )}
+          </div>
+        )}
+
+        {/* ── TEMPLATE LIST ── */}
+        {view==="tpls"&&cat&&(
+          <div className="fi">
+            <BC/>
+            <div style={{display:"flex",alignItems:"center",gap:12,marginBottom:20}}>
+              <div style={{width:48,height:48,borderRadius:12,background:cat.c+"10",display:"flex",alignItems:"center",justifyContent:"center",fontSize:22,color:cat.c}}>{cat.ic}</div>
+              <div>
+                <h2 style={{fontSize:20,fontWeight:700,fontFamily:"'DM Serif Display',serif"}}>{cat.l}</h2>
+                <p style={{fontSize:13,color:"#78716c"}}>{cat.d}</p>
+              </div>
+            </div>
+            {cat.t.map(t=>(
+              <div key={t.id} className="cd cc" onClick={()=>goTpl(t)} style={{marginBottom:10,display:"flex",justifyContent:"space-between",alignItems:"center"}}>
+                <div>
+                  <p style={{fontSize:15,fontWeight:600,marginBottom:4}}>{t.n}</p>
+                  <p style={{fontSize:12,color:"#78716c",marginBottom:6}}>{t.d}</p>
+                  <div style={{display:"flex",gap:5,flexWrap:"wrap"}}>
+                    {t.f.map(f=><span key={f.k} style={{fontSize:10,padding:"2px 7px",borderRadius:4,background:"#f5f5f4",color:"#78716c"}}>{f.l}</span>)}
+                  </div>
+                </div>
+                <span style={{color:"#d6d3d1",marginLeft:12}}>→</span>
+              </div>
+            ))}
+          </div>
+        )}
+
+        {/* ── FILL ── */}
+        {view==="fill"&&tpl&&(
+          <div className="fi">
+            <BC/>
+            <div className="cd" style={{marginBottom:18,background:"#faf9f7"}}>
+              <h2 style={{fontSize:18,fontWeight:700,fontFamily:"'DM Serif Display',serif",marginBottom:3}}>{tpl.n}</h2>
+              <p style={{fontSize:13,color:"#78716c"}}>{tpl.d}</p>
+            </div>
+            <div style={{display:"flex",flexDirection:"column",gap:14}}>
+              {tpl.f.map(f=>(
+                <div key={f.k}>
+                  <label style={{fontSize:13,color:"#57534e",marginBottom:6,display:"block",fontWeight:600}}>{f.l}</label>
+                  <textarea value={fld[f.k]||""} onChange={e=>setFld(p=>({...p,[f.k]:e.target.value}))} placeholder={f.p} rows={2}
+                    style={{width:"100%",padding:"10px 14px",background:"#fff",border:"1px solid #e7e5e4",borderRadius:10,color:"#292524",fontSize:13,lineHeight:1.6,resize:"vertical",fontFamily:"inherit"}}/>
+                </div>
+              ))}
+            </div>
+            {err&&<div style={{marginTop:12,padding:"10px 14px",borderRadius:8,background:"#fef2f2",border:"1px solid #fecaca",color:"#b91c1c",fontSize:13}}>{err}</div>}
+            <div style={{display:"flex",gap:10,marginTop:20}}>
+              <button className="bp" onClick={submit} disabled={ld||tpl.f.every(f=>!fld[f.k]?.trim())}>{ld?"변환 중...":"프롬프트 생성 →"}</button>
+              <button className="bs" onClick={()=>setView("tpls")}>뒤로</button>
+            </div>
+          </div>
+        )}
+
+        {/* ── RESULT ── */}
+        {view==="result"&&res&&!showDoc&&(
+          <div className="fi">
+            <BC/>
+            <div className="cd" style={{marginBottom:12}}>
+              <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",flexWrap:"wrap",gap:10}}>
+                <h2 style={{fontSize:18,fontWeight:700,fontFamily:"'DM Serif Display',serif"}}>{res.title}</h2>
+                <span className="tag" style={{background:cxC[res.complexity]+"14",color:cxC[res.complexity]}}>{cxL[res.complexity]}</span>
+              </div>
+            </div>
+
+            <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10,marginBottom:12}}>
+              <div className="cd" style={{borderColor:"#bbf7d0"}}>
+                <div style={{fontSize:12,fontWeight:700,color:"#059669",marginBottom:8}}>✓ 수행</div>
+                {res.scope_do?.map((s,i)=><div key={i} className="si" style={{background:"#f0fdf4",color:"#166534",marginBottom:3,borderRadius:8}}><span style={{color:"#059669"}}>+</span>{s}</div>)}
+              </div>
+              <div className="cd" style={{borderColor:"#fecaca"}}>
+                <div style={{fontSize:12,fontWeight:700,color:"#dc2626",marginBottom:8}}>✕ 금지</div>
+                {res.scope_dont?.map((s,i)=><div key={i} className="si" style={{background:"#fef2f2",color:"#991b1b",marginBottom:3,borderRadius:8}}><span style={{color:"#dc2626"}}>−</span>{s}</div>)}
+              </div>
+            </div>
+
+            {res.quality?.length>0&&(
+              <div className="cd" style={{marginBottom:12,borderColor:"#e9d5ff"}}>
+                <div style={{fontSize:12,fontWeight:700,color:"#7c3aed",marginBottom:8}}>✦ 품질</div>
+                {res.quality.map((q,i)=><div key={i} className="si" style={{background:"#faf5ff",color:"#581c87",marginBottom:3,borderRadius:8}}><span style={{color:"#7c3aed"}}>✦</span>{q}</div>)}
+              </div>
+            )}
+
+            <div className="cd" style={{marginBottom:12,borderColor:"#292524",borderWidth:2}}>
+              <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:10}}>
+                <span style={{fontWeight:700}}>생성된 프롬프트</span>
+                <button className="bs" onClick={()=>copy(res.prompt,"p")} style={{color:cp==="p"?"#059669":undefined}}>{cp==="p"?"복사됨 ✓":"복사"}</button>
+              </div>
+              <div style={{padding:14,borderRadius:10,background:"#faf9f7",border:"1px solid #e7e5e4",fontSize:13,lineHeight:1.8,color:"#44403c",whiteSpace:"pre-wrap"}}>{res.prompt}</div>
+            </div>
+
+            <div className="cd" style={{marginBottom:12}}>
+              <div style={{fontSize:12,fontWeight:700,color:"#057857",marginBottom:8}}>☑ 체크리스트</div>
+              {res.checklist?.map((c,i)=><label key={i} style={{display:"flex",alignItems:"flex-start",gap:8,padding:"5px 4px",fontSize:13,color:"#57534e",cursor:"pointer"}}><input type="checkbox" style={{marginTop:2,accentColor:"#292524"}}/><span>{c}</span></label>)}
+            </div>
+
+            {res.tip&&<div style={{padding:"10px 14px",borderRadius:8,background:"#fffbeb",border:"1px solid #fde68a",fontSize:12,color:"#92400e",marginBottom:12}}>💡 {res.tip}</div>}
+
+            <div style={{display:"flex",gap:8,flexWrap:"wrap"}}>
+              <button className="bp" onClick={()=>copy(res.prompt,"p")}>{cp==="p"?"복사됨 ✓":"프롬프트 복사"}</button>
+              <button className="bp" onClick={genDoc} disabled={docLd} style={{background:"#4f46e5"}}>{docLd?"생성 중...":"📄 문서 생성 & 미리보기"}</button>
+              <button className="bs" onClick={()=>copy(JSON.stringify(res,null,2),"a")}>{cp==="a"?"복사됨":"JSON 복사"}</button>
+              <button className="bs" onClick={goHome}>홈</button>
+            </div>
+          </div>
+        )}
+
+        {/* ── DOCUMENT EDITOR ── */}
+        {showDoc&&(
+          <div className="fi">
+            <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:12,flexWrap:"wrap",gap:8}}>
+              <div>
+                <h2 style={{fontSize:18,fontWeight:700,fontFamily:"'DM Serif Display',serif"}}>{res?.title} — 문서 편집</h2>
+                <p style={{fontSize:12,color:"#78716c"}}>직접 수정 가능 · 서명/입력란 추가 · 다운로드 & 공유</p>
+              </div>
+              <button className="bs" onClick={()=>setShowDoc(false)}>← 결과로 돌아가기</button>
+            </div>
+
+            {/* Toolbar */}
+            <div className="toolbar">
+              <button className="bt" onClick={addInputField}>⊞ 입력란 추가</button>
+              <button className="bt" onClick={startSig}>✍ 서명 추가</button>
+              {sigData&&<button className="bt" onClick={insertSig} style={{borderColor:"#059669",color:"#059669"}}>✓ 서명 삽입</button>}
+              <div style={{flex:1}}/>
+              <button className="bt" onClick={downloadHtml}>↓ HTML</button>
+              <button className="bt" onClick={downloadTxt}>↓ TXT</button>
+              <button className="bt" onClick={printDoc}>🖨 인쇄/PDF</button>
+              <button className="bt" onClick={shareDoc}>{cp==="share"?"공유됨 ✓":"↗ 공유"}</button>
+            </div>
+
+            {/* Signature Canvas */}
+            {sigMode&&(
+              <div className="cd" style={{marginBottom:12,background:"#fffbeb",borderColor:"#fde68a"}}>
+                <p style={{fontSize:13,fontWeight:600,marginBottom:8}}>서명 그리기</p>
+                <canvas ref={initCanvas} width={320} height={100}
+                  onMouseDown={onDown} onMouseMove={onMove} onMouseUp={onUp} onMouseLeave={onUp}
+                  onTouchStart={e=>{e.preventDefault();const t=e.touches[0];onDown({clientX:t.clientX,clientY:t.clientY});}}
+                  onTouchMove={e=>{e.preventDefault();const t=e.touches[0];onMove({clientX:t.clientX,clientY:t.clientY});}}
+                  onTouchEnd={onUp}
+                  style={{border:"1px solid #d6d3d1",borderRadius:8,cursor:"crosshair",touchAction:"none",maxWidth:"100%"}}/>
+                <div style={{display:"flex",gap:8,marginTop:8}}>
+                  <button className="bp" onClick={saveSig} style={{padding:"8px 18px",fontSize:13}}>저장</button>
+                  <button className="bs" onClick={()=>{setSigMode(false);const c=sigCanvas.current;if(c){const ctx=c.getContext("2d");ctx.fillStyle="#fff";ctx.fillRect(0,0,c.width,c.height);}}}>초기화</button>
+                  <button className="bs" onClick={()=>setSigMode(false)}>취소</button>
+                </div>
+              </div>
+            )}
+
+            {/* Document */}
+            <div ref={docRef} className="doc-area" contentEditable="true" suppressContentEditableWarning
+              dangerouslySetInnerHTML={{__html:docHtml}}
+              style={{marginBottom:16}}
+            />
+
+            <div style={{display:"flex",gap:8,flexWrap:"wrap"}}>
+              <button className="bp" onClick={printDoc}>🖨 인쇄 / PDF 저장</button>
+              <button className="bp" onClick={downloadHtml} style={{background:"#4f46e5"}}>↓ HTML 다운로드</button>
+              <button className="bs" onClick={shareDoc}>{cp==="share"?"공유됨 ✓":"↗ 공유하기"}</button>
+              <button className="bs" onClick={goHome}>홈</button>
+            </div>
+          </div>
+        )}
+      </main>
+
+      <footer style={{borderTop:"1px solid #e7e5e4",padding:"14px 24px",textAlign:"center",fontSize:11,color:"#a8a29e"}}>
+        Brevy Prompt Studio — 업무 요청을 AI가 이해하는 언어로
+      </footer>
+    </div>
+  );
+}
+
+export default App;
