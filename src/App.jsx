@@ -6,7 +6,6 @@ import useClaude from "./hooks/useClaude";
 import Header from "./components/Header";
 import Breadcrumbs from "./components/Breadcrumbs";
 import Guide from "./components/Guide";
-import AlertCenter from "./components/AlertCenter";
 import AdminDashboard from "./components/AdminDashboard";
 
 export default function App() {
@@ -453,7 +452,7 @@ export default function App() {
               <p style={{ color: 'var(--text-muted)' }}>브레비의 3가지 핵심 기능을 확인해보세요.</p>
             </div>
 
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '20px', marginBottom: '40px' }}>
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px', marginBottom: '40px' }}>
               <div style={{ textAlign: 'center' }}>
                 <div style={{ fontSize: '2.5rem', marginBottom: '16px' }}>🚀</div>
                 <h4 style={{ marginBottom: '8px' }}>프롬프트 최적화</h4>
@@ -463,11 +462,6 @@ export default function App() {
                 <div style={{ fontSize: '2.5rem', marginBottom: '16px' }}>📄</div>
                 <h4 style={{ marginBottom: '8px' }}>문서 생성/다운로드</h4>
                 <p style={{ fontSize: '12px', color: 'var(--text-muted)', lineHeight: 1.5 }}>완성된 프롬프트로 실제 문서(계약서, 보고서 등)를 생성하고 PDF로 저장하세요.</p>
-              </div>
-              <div style={{ textAlign: 'center' }}>
-                <div style={{ fontSize: '2.5rem', marginBottom: '16px' }}>🔔</div>
-                <h4 style={{ marginBottom: '8px' }}>지능형 알림</h4>
-                <p style={{ fontSize: '12px', color: 'var(--text-muted)', lineHeight: 1.5 }}>날씨, 뉴스 등 원하는 정보를 원하는 시간에 자동으로 받아보세요.</p>
               </div>
             </div>
 
@@ -481,7 +475,6 @@ export default function App() {
       <Header 
         templateCount={allTemplates.length} 
         onHome={goHome} 
-        onAlerts={() => setView("alerts")}
         onLogout={handleLogout}
       />
       
@@ -493,7 +486,7 @@ export default function App() {
 
       <main style={{ maxWidth: 900, margin: "0 auto", padding: "40px 24px" }}>
         
-        {view === "alerts" && <AlertCenter />}
+        
         
         {view === "home" && (
           <div className="fade-in">
@@ -737,7 +730,7 @@ export default function App() {
       </main>
 
       <footer style={{ borderTop: "1px solid var(--border)", padding: "40px 24px", textAlign: "center", color: "var(--text-light)", fontSize: 12 }}>
-        &copy; 2024 Brevy Prompt Studio. Crafted with precision for AI optimization. (v1.3.5 - LATEST)
+        &copy; 2024 Brevy Prompt Studio. Crafted with precision for AI optimization. (v1.3.6 - LATEST)
       </footer>
       <Guide />
     </div>

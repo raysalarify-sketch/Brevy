@@ -49,20 +49,6 @@ const Header = ({ templateCount, onHome, onAlerts, onLogout }) => {
           }}
         >Prompt Studio</button>
         <button 
-          onClick={onAlerts} 
-          style={{ 
-            background: 'none', 
-            border: 'none', 
-            fontSize: 14, 
-            fontWeight: 600, 
-            color: 'var(--text-muted)', 
-            cursor: 'pointer',
-            transition: '0.2s'
-          }}
-          onMouseOver={(e) => e.target.style.color = 'var(--primary)'}
-          onMouseOut={(e) => e.target.style.color = 'var(--text-muted)'}
-        >Alert Center</button>
-        <button 
           onClick={onLogout} 
           style={{ 
             padding: '6px 12px',
