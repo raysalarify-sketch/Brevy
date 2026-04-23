@@ -175,16 +175,21 @@ export default function App() {
       
       const jsonStr = jsonMatch[0].trim();
       const parsedRes = JSON.parse(jsonStr);
+      
+      // 생성 로그 기록
+      try {
+        const resultObject = typeof jsonStr === 'string' ? JSON.parse(jsonStr) : jsonStr;
+        await supabase.from('prompt_history').insert({
+          code: localStorage.getItem('brevy_session_code') || 'GUEST',
+          input_text: msg,
+          result_json: JSON.stringify(resultObject)
+        });
+      } catch (err) {
+        console.warn('History Log Fail:', err);
+      }
+      
       setRes(parsedRes);
       setView("result");
-
-      // 생성 로그 기록 (Supabase)
-      await supabase.from('prompt_history').insert({
-        code: storedCode,
-        template_name: tpl.n,
-        category: c.l,
-        success: true
-      });
 
     } catch (e) {
       console.error(e);
