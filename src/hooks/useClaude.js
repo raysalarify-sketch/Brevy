@@ -15,7 +15,9 @@ const useClaude = () => {
 
     if (!r.ok) {
       const errorData = await r.json();
-      throw new Error(errorData.error?.message || "AI 요청 처리 중 서버 오류가 발생했습니다.");
+      const errorMsg = errorData.error || errorData.details || errorData.message || "서버 응답 오류";
+      const hint = errorData.hint ? `\n\n💡 힌트: ${errorData.hint}` : "";
+      throw new Error(`${errorMsg}${hint}`);
     }
 
     const d = await r.json();
