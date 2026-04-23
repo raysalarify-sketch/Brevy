@@ -343,9 +343,12 @@ export default function App() {
         status: 'pending'
       });
 
-      if (error) throw error;
+      if (error) {
+        console.error('Request Error Details:', error);
+        return alert(`입장 요청 중 오류가 발생했습니다: ${error.message || '데이터베이스 연결 실패'}`);
+      }
       
-      alert('입장 요청이 데이터베이스에 등록되었습니다! 관리자가 확인 후 코드를 발송해 드립니다.');
+      alert('입장 요청이 성공적으로 접수되었습니다! 관리자가 확인 후 메일을 발송해 드립니다.');
       setShowRequestForm(false);
       setRequestData({ email: '', name: '', content: '' });
     } catch (err) {
