@@ -63,12 +63,37 @@ const AdminDashboard = ({ onExit }) => {
     }
   };
 
-  const handleSendMail = (req) => {
-    const activeCode = accessCodes.sort((a, b) => new Date(b.created_at) - new Date(a.created_at))[0]?.code || '발급된 코드가 없습니다.';
-    const subject = encodeURIComponent('[Brevy] 입장 코드 안내드립니다.');
-    const body = encodeURIComponent(`안녕하세요, ${req.user_name}님.\n\nBrevy Prompt Studio 입장 요청을 승인해 드립니다.\n\n현재 활성화된 입장 코드는 [ ${activeCode} ] 입니다.\n\n아래 주소로 접속하여 코드를 입력해 주세요.\nhttps://brevy-lmvf.vercel.app\n\n감사합니다.`);
+  const [sendingId, setSendingId] = useState(null);
+
+  const handleSendMail = async (req) => {
+    if (sendingId) return;
+    const activeCode = accessCodes.sort((a, b) => new Date(b.created_at) - new Date(a.created_at))[0]?.code || 'NONE';
     
-    window.location.href = `mailto:${req.email}?subject=${subject}&body=${body}`;
+    setSendingId(req.id);
+    try {
+      const response = await fetch('/api/mail', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          to: req.email,
+          userName: req.user_name,
+          activeCode: activeCode
+        })
+      });
+
+      if (response.ok) {
+        alert(`${req.user_name}님께 입장 코드를 발송했습니다!`);
+        // 발송 후 상태를 업데이트하고 싶다면 여기서 supabase update 로직 추가 가능
+      } else {
+        const err = await response.json();
+        throw new Error(err.message || '발송 실패');
+      }
+    } catch (err) {
+      console.error('Mail Send Error:', err);
+      alert(`메일 발송 중 오류가 발생했습니다: ${err.message}\n(Vercel 환경 변수에 RESEND_API_KEY가 설정되어 있는지 확인해 주세요.)`);
+    } finally {
+      setSendingId(null);
+    }
   };
 
   const deleteRequest = async (id) => {
@@ -132,7 +157,21 @@ const AdminDashboard = ({ onExit }) => {
                       <td style={{ padding: '12px 20px', color: 'var(--text-muted)', fontSize: '12px' }}>{req.content || '입장 코드 요청'}</td>
                       <td style={{ padding: '12px 20px', textAlign: 'right' }}>
                         <div style={{ display: 'flex', gap: '8px', justifyContent: 'flex-end' }}>
-                          <button onClick={() => handleSendMail(req)} className="btn-secondary" style={{ padding: '4px 8px', fontSize: '11px', background: '#f0f9ff', borderColor: '#bae6fd', color: '#0369a1' }}>메일 발송 📧</button>
+                          <button 
+                            onClick={() => handleSendMail(req)} 
+                            className="btn-secondary" 
+                            disabled={sendingId === req.id}
+                            style={{ 
+                              padding: '4px 12px', 
+                              fontSize: '11px', 
+                              background: sendingId === req.id ? '#f1f5f9' : '#f0f9ff', 
+                              borderColor: sendingId === req.id ? '#e2e8f0' : '#bae6fd', 
+                              color: sendingId === req.id ? '#94a3b8' : '#0369a1',
+                              minWidth: '80px'
+                            }}
+                          >
+                            {sendingId === req.id ? '발송 중...' : '메일 발송 📧'}
+                          </button>
                           <button onClick={() => deleteRequest(req.id)} style={{ color: '#dc2626', background: 'none', border: 'none', cursor: 'pointer', fontSize: '11px', fontWeight: 600 }}>삭제</button>
                         </div>
                       </td>
