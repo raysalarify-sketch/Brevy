@@ -86,7 +86,7 @@ const AdminDashboard = ({ onExit }) => {
         // 발송 후 상태를 업데이트하고 싶다면 여기서 supabase update 로직 추가 가능
       } else {
         const err = await response.json();
-        throw new Error(err.message || '발송 실패');
+        throw new Error(err.error || err.message || '발송 실패');
       }
     } catch (err) {
       console.error('Mail Send Error:', err);
