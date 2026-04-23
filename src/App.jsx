@@ -377,7 +377,6 @@ export default function App() {
     return (
       <div style={{ height: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%)', color: '#1e293b', fontFamily: 'Inter, sans-serif' }}>
         <div className="fade-in card" style={{ width: '100%', maxWidth: '440px', padding: '48px', textAlign: 'center', background: 'rgba(255, 255, 255, 0.8)', backdropFilter: 'blur(20px)', border: '1px solid rgba(255, 255, 255, 0.5)', borderRadius: '32px', boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.1)' }}>
-          {/* ... existing header ... */}
           <div style={{ width: 64, height: 64, background: 'var(--primary)', borderRadius: 20, margin: '0 auto 24px', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 32, boxShadow: '0 10px 20px rgba(0,0,0,0.1)' }}>
             <svg width="32" height="32" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
               <path d="M12 2L4 7V17L12 22L20 17V7L12 2Z" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
@@ -444,33 +443,7 @@ export default function App() {
 
   return (
     <div ref={topRef} className="app-container">
-      {showOnboarding && (
-        <div className="guide-overlay" style={{ zIndex: 3000 }}>
-          <div className="guide-modal" style={{ maxWidth: '700px', padding: '40px' }}>
-            <div style={{ textAlign: 'center', marginBottom: '32px' }}>
-              <h2 className="serif" style={{ fontSize: '2.25rem', marginBottom: '8px' }}>Welcome to Brevy</h2>
-              <p style={{ color: 'var(--text-muted)' }}>브레비의 3가지 핵심 기능을 확인해보세요.</p>
-            </div>
-
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px', marginBottom: '40px' }}>
-              <div style={{ textAlign: 'center' }}>
-                <div style={{ fontSize: '2.5rem', marginBottom: '16px' }}>🚀</div>
-                <h4 style={{ marginBottom: '8px' }}>프롬프트 최적화</h4>
-                <p style={{ fontSize: '12px', color: 'var(--text-muted)', lineHeight: 1.5 }}>요청 사항을 AI가 즉시 실행 가능한 고품질 프롬프트로 변환합니다.</p>
-              </div>
-              <div style={{ textAlign: 'center' }}>
-                <div style={{ fontSize: '2.5rem', marginBottom: '16px' }}>📄</div>
-                <h4 style={{ marginBottom: '8px' }}>문서 생성/다운로드</h4>
-                <p style={{ fontSize: '12px', color: 'var(--text-muted)', lineHeight: 1.5 }}>완성된 프롬프트로 실제 문서(계약서, 보고서 등)를 생성하고 PDF로 저장하세요.</p>
-              </div>
-            </div>
-
-            <button className="btn-primary" onClick={closeOnboarding} style={{ width: '100%', justifyContent: 'center', padding: '16px' }}>
-              시작하기
-            </button>
-          </div>
-        </div>
-      )}
+      {/* Onboarding popup removed */}
 
       <Header 
         templateCount={allTemplates.length} 
@@ -730,7 +703,7 @@ export default function App() {
       </main>
 
       <footer style={{ borderTop: "1px solid var(--border)", padding: "40px 24px", textAlign: "center", color: "var(--text-light)", fontSize: 12 }}>
-        &copy; 2024 Brevy Prompt Studio. Crafted with precision for AI optimization. (v1.3.8 - LATEST)
+        &copy; 2024 Brevy Prompt Studio. Crafted with precision for AI optimization. (v1.3.9 - LATEST)
       </footer>
       <Guide />
     </div>
