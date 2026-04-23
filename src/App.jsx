@@ -179,13 +179,18 @@ export default function App() {
       // 생성 로그 기록
       try {
         const resultObject = typeof jsonStr === 'string' ? JSON.parse(jsonStr) : jsonStr;
-        await supabase.from('prompt_history').insert({
+        const { error: dbError } = await supabase.from('prompt_history').insert({
           code: localStorage.getItem('brevy_session_code') || 'GUEST',
           input_text: msg,
           result_json: JSON.stringify(resultObject)
         });
+        if (dbError) {
+          console.error('Database Insert Error:', dbError);
+          // 400 에러의 원인을 알기 위해 알림을 띄우지 않고 로그만 남기되,
+          // 중요한 정보라면 여기에 알림을 추가할 수 있습니다.
+        }
       } catch (err) {
-        console.warn('History Log Fail:', err);
+        console.warn('History Log Process Fail:', err);
       }
       
       setRes(parsedRes);
