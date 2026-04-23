@@ -14,11 +14,7 @@ export default async function handler(req, res) {
 
   try {
     const genAI = new GoogleGenerativeAI(apiKey);
-    
-    // Reverting to default (v1beta) to match the debug model list
-    const model = genAI.getGenerativeModel(
-      { model: "gemini-flash-latest" }
-    );
+    const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
 
     const combinedMessages = [...messages];
     if (system && combinedMessages.length > 0 && combinedMessages[0].role === 'user') {
@@ -34,9 +30,8 @@ export default async function handler(req, res) {
     const chat = model.startChat({
       history: history,
       generationConfig: {
-        maxOutputTokens: 2500,
-        temperature: 0.4,
-        topP: 0.8,
+        maxOutputTokens: 3500,
+        temperature: 0.7,
       },
     });
 
@@ -48,11 +43,11 @@ export default async function handler(req, res) {
       content: [{ text: text }]
     });
   } catch (error) {
-    console.error('Gemini SDK Error:', error);
+    console.error('AI SDK Error:', error);
     return res.status(500).json({ 
-      error: { 
-        message: error.message || 'Failed to connect to Antigravity(Gemini) engine' 
-      } 
+      error: 'AI 엔진 연결 실패',
+      details: error.message || '알 수 없는 오류',
+      hint: 'Vercel 설정에서 GEMINI_API_KEY를 확인해 주세요.'
     });
   }
 }
