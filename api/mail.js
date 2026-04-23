@@ -1,19 +1,21 @@
 import { Resend } from 'resend';
 
-const resend = new Resend(process.env.RESEND_API_KEY);
-
 export default async function handler(req, res) {
   if (req.method !== 'POST') {
     return res.status(405).json({ error: 'Method not allowed' });
   }
 
-  const { to, userName, activeCode } = req.body;
-
   if (!process.env.RESEND_API_KEY) {
-    return res.status(500).json({ error: 'Vercel 환경 변수에 RESEND_API_KEY가 설정되지 않았습니다.' });
+    return res.status(500).json({ 
+      error: 'RESEND_API_KEY가 설정되지 않았습니다.',
+      hint: 'Vercel Dashboard > Settings > Environment Variables에서 RESEND_API_KEY를 추가하고 Redeploy 해주세요.' 
+    });
   }
 
+  const { to, userName, activeCode } = req.body;
+
   try {
+    const resend = new Resend(process.env.RESEND_API_KEY);
     const data = await resend.emails.send({
       from: 'Brevy Studio <onboarding@resend.dev>',
       to: [to],
