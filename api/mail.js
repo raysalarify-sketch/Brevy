@@ -9,9 +9,13 @@ export default async function handler(req, res) {
 
   const { to, userName, activeCode } = req.body;
 
+  if (!process.env.RESEND_API_KEY) {
+    return res.status(500).json({ error: 'Vercel 환경 변수에 RESEND_API_KEY가 설정되지 않았습니다.' });
+  }
+
   try {
     const data = await resend.emails.send({
-      from: 'Brevy Studio <onboarding@resend.dev>', // 나중에 본인 도메인으로 변경 가능
+      from: 'Brevy Studio <onboarding@resend.dev>',
       to: [to],
       subject: '[Brevy] 입장 코드 안내드립니다.',
       html: `
@@ -35,8 +39,13 @@ export default async function handler(req, res) {
       `,
     });
 
-    return res.status(200).json(data);
+    if (data.error) {
+       return res.status(400).json({ error: data.error.message || 'Resend API 오류' });
+    }
+
+    return res.status(200).json({ success: true, data });
   } catch (error) {
-    return res.status(400).json(error);
+    console.error('Mail API Error:', error);
+    return res.status(500).json({ error: error.message || '알 수 없는 서버 오류' });
   }
 }
