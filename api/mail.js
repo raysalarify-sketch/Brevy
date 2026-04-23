@@ -1,24 +1,34 @@
-import { Resend } from 'resend';
+import nodemailer from 'nodemailer';
 
 export default async function handler(req, res) {
   if (req.method !== 'POST') {
     return res.status(405).json({ error: 'Method not allowed' });
   }
 
-  if (!process.env.RESEND_API_KEY) {
+  const { to, userName, activeCode } = req.body;
+
+  // 1. 환경 변수 체크
+  if (!process.env.MAIL_USER || !process.env.MAIL_PASS) {
     return res.status(500).json({ 
-      error: 'RESEND_API_KEY가 설정되지 않았습니다.',
-      hint: 'Vercel Dashboard > Settings > Environment Variables에서 RESEND_API_KEY를 추가하고 Redeploy 해주세요.' 
+      error: '메일 서버 설정(MAIL_USER, MAIL_PASS)이 누락되었습니다.',
+      hint: 'Vercel 설정에서 Gmail 주소와 앱 비밀번호를 등록해 주세요.' 
     });
   }
 
-  const { to, userName, activeCode } = req.body;
-
   try {
-    const resend = new Resend(process.env.RESEND_API_KEY);
-    const data = await resend.emails.send({
-      from: 'Brevy Studio <onboarding@resend.dev>',
-      to: [to],
+    // 2. Gmail SMTP 설정
+    const transporter = nodemailer.createTransport({
+      service: 'gmail',
+      auth: {
+        user: process.env.MAIL_USER,
+        pass: process.env.MAIL_PASS,
+      },
+    });
+
+    // 3. 메일 발송
+    await transporter.sendMail({
+      from: `"Brevy Studio" <${process.env.MAIL_USER}>`,
+      to: to,
       subject: '[Brevy] 입장 코드 안내드립니다.',
       html: `
         <div style="font-family: sans-serif; max-width: 600px; margin: 0 auto; padding: 40px; border: 1px solid #e5e7eb; border-radius: 16px;">
@@ -41,13 +51,9 @@ export default async function handler(req, res) {
       `,
     });
 
-    if (data.error) {
-       return res.status(400).json({ error: data.error.message || 'Resend API 오류' });
-    }
-
-    return res.status(200).json({ success: true, data });
+    return res.status(200).json({ success: true });
   } catch (error) {
     console.error('Mail API Error:', error);
-    return res.status(500).json({ error: error.message || '알 수 없는 서버 오류' });
+    return res.status(500).json({ error: error.message || '메일 발송 실패' });
   }
 }
