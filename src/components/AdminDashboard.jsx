@@ -63,6 +63,14 @@ const AdminDashboard = ({ onExit }) => {
     }
   };
 
+  const handleSendMail = (req) => {
+    const activeCode = accessCodes.sort((a, b) => new Date(b.created_at) - new Date(a.created_at))[0]?.code || '발급된 코드가 없습니다.';
+    const subject = encodeURIComponent('[Brevy] 입장 코드 안내드립니다.');
+    const body = encodeURIComponent(`안녕하세요, ${req.user_name}님.\n\nBrevy Prompt Studio 입장 요청을 승인해 드립니다.\n\n현재 활성화된 입장 코드는 [ ${activeCode} ] 입니다.\n\n아래 주소로 접속하여 코드를 입력해 주세요.\nhttps://brevy-lmvf.vercel.app\n\n감사합니다.`);
+    
+    window.location.href = `mailto:${req.email}?subject=${subject}&body=${body}`;
+  };
+
   const deleteRequest = async (id) => {
     if (!window.confirm('이 요청을 삭제하시겠습니까?')) return;
     await supabase.from('prompt_requests').delete().eq('id', id);
@@ -83,7 +91,7 @@ const AdminDashboard = ({ onExit }) => {
       </div>
 
       <div className="home-layout">
-        <div>
+        <div style={{ flex: 1 }}>
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(140px, 1fr))', gap: '20px', marginBottom: '32px' }}>
             <div className="card" style={{ textAlign: 'center' }}>
               <div style={{ fontSize: '11px', color: 'var(--text-muted)', marginBottom: '8px', fontWeight: 600 }}>총 접속 로그</div>
@@ -109,18 +117,24 @@ const AdminDashboard = ({ onExit }) => {
                   <tr style={{ background: 'var(--bg)', borderBottom: '1px solid var(--border)', fontSize: '10px', color: 'var(--text-muted)' }}>
                     <th style={{ padding: '12px 20px', textAlign: 'left' }}>DATE</th>
                     <th style={{ padding: '12px 20px', textAlign: 'left' }}>USER</th>
-                    <th style={{ padding: '12px 20px', textAlign: 'left' }}>EMAIL</th>
-                    <th style={{ padding: '12px 20px', textAlign: 'left' }}>ACTION</th>
+                    <th style={{ padding: '12px 20px', textAlign: 'left' }}>REQUEST CONTENT</th>
+                    <th style={{ padding: '12px 20px', textAlign: 'right' }}>ACTIONS</th>
                   </tr>
                 </thead>
                 <tbody>
                   {pendingRequests.map((req) => (
                     <tr key={req.id} style={{ borderBottom: '1px solid var(--border)', fontSize: '13px' }}>
                       <td style={{ padding: '12px 20px' }}>{new Date(req.created_at).toLocaleDateString()}</td>
-                      <td style={{ padding: '12px 20px', fontWeight: 700 }}>{req.user_name}</td>
-                      <td style={{ padding: '12px 20px', color: 'var(--primary)' }}>{req.email}</td>
                       <td style={{ padding: '12px 20px' }}>
-                        <button onClick={() => deleteRequest(req.id)} style={{ color: '#dc2626', background: 'none', border: 'none', cursor: 'pointer', fontSize: '11px' }}>삭제</button>
+                        <div style={{ fontWeight: 700 }}>{req.user_name}</div>
+                        <div style={{ fontSize: '11px', color: 'var(--primary)' }}>{req.email}</div>
+                      </td>
+                      <td style={{ padding: '12px 20px', color: 'var(--text-muted)', fontSize: '12px' }}>{req.content || '입장 코드 요청'}</td>
+                      <td style={{ padding: '12px 20px', textAlign: 'right' }}>
+                        <div style={{ display: 'flex', gap: '8px', justifyContent: 'flex-end' }}>
+                          <button onClick={() => handleSendMail(req)} className="btn-secondary" style={{ padding: '4px 8px', fontSize: '11px', background: '#f0f9ff', borderColor: '#bae6fd', color: '#0369a1' }}>메일 발송 📧</button>
+                          <button onClick={() => deleteRequest(req.id)} style={{ color: '#dc2626', background: 'none', border: 'none', cursor: 'pointer', fontSize: '11px', fontWeight: 600 }}>삭제</button>
+                        </div>
                       </td>
                     </tr>
                   ))}

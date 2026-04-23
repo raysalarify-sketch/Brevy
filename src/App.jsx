@@ -727,7 +727,7 @@ export default function App() {
       </main>
 
       <footer style={{ borderTop: "1px solid var(--border)", padding: "40px 24px", textAlign: "center", color: "var(--text-light)", fontSize: 12 }}>
-        &copy; 2024 Brevy Prompt Studio. Crafted with precision for AI optimization. (v1.2.3 - LATEST)
+        &copy; 2024 Brevy Prompt Studio. Crafted with precision for AI optimization. (v1.2.4 - LATEST)
       </footer>
       <Guide />
     </div>
